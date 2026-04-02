@@ -2737,9 +2737,9 @@
           window.currentUserAgeGroup = data.age_group || 'yetiskin';
           window.currentUserAvatarId = data.avatar_id || 'm1';
           window.currentUserAvatarUrl = data.avatar_url || null;
-
+          
           // Proxy ihtiyacı kalmadığı için URL dönüştürme (Migration) kısmı kaldırıldı.
-
+          
           const topNav = document.getElementById('top-nav');
           if (topNav) topNav.style.display = 'flex';
           const bottomNav = document.querySelector('.bottom-nav');
@@ -3458,17 +3458,16 @@
       w = w || 75; h = h || 175;
       const bmi = (w / ((h / 100) ** 2));
       const safeBMI = (isNaN(bmi) || !isFinite(bmi)) ? 22 : bmi;
-
+      
       const avatarId = window.currentUserAvatarId || 'm1';
       const avatarUrl = window.currentUserAvatarUrl || null;
       const visualContainer = document.querySelector('.v-twin-visual');
 
-      // ─── DİNAMİK VÜCUT ÖLÇEKLENDİRME (VKİ BAZLI - 2X BOYUT) ───
-      const baseScale = 2.0; // Kullanıcı isteği üzerine 2 kat daha büyük
-      // X ve Z eksenini (Genişlik ve Derinlik) BMI'a göre daha belirgin esnetiyoruz.
-      const scaleXZ = (baseScale * Math.max(0.65, Math.min(1.7, 1 + (safeBMI - 22) * 0.06))).toFixed(2);
-      // Y eksenini (Boy) kullanıcının boyuna göre esnetiyoruz.
-      const scaleY = (baseScale * Math.max(0.85, Math.min(1.15, h / 175))).toFixed(2);
+      // ─── DİNAMİK VÜCUT ÖLÇEKLENDİRME (VKİ BAZLI) ───
+      // X ve Z eksenini (Genişlik ve Derinlik) BMI'a göre esnetiyoruz.
+      const scaleXZ = Math.max(0.75, Math.min(1.4, 1 + (safeBMI - 22) * 0.03)).toFixed(2);
+      // Y eksenini (Boy) kullanıcının boyuna göre hafif esnetiyoruz.
+      const scaleY = Math.max(0.85, Math.min(1.15, h / 175)).toFixed(2);
       const scaleString = `${scaleXZ} ${scaleY} ${scaleXZ}`;
 
       // 1. 3D Render Check
@@ -3487,8 +3486,8 @@
             updateVirtualTwin(records);
           });
         } else {
-          // Eğer model zaten ekrandaysa sadece kalınlığını (scale) dinamik olarak güncelle!
-          mv.setAttribute('scale', scaleString);
+            // Eğer model zaten ekrandaysa sadece kalınlığını (scale) dinamik olarak güncelle!
+            mv.setAttribute('scale', scaleString);
         }
       } else if (visualContainer && (visualContainer.querySelector('model-viewer') || !visualContainer.querySelector('svg'))) {
         visualContainer.innerHTML = `<div class="v-twin-aura" id="v-aura"></div><svg viewBox="0 0 100 120" id="v-character"></svg>`;
@@ -3546,7 +3545,7 @@
         case 'f1': hair.setAttribute('d', 'M 35 25 Q 50 10 65 25 L 68 45 Q 50 40 32 45 Z'); hair.setAttribute('fill', '#333'); break;
         default: hair.setAttribute('d', 'M 40 22 Q 50 12 60 22'); break;
       }
-
+      
       // 2D Vücut Genişliği (VKİ tabanlı esneme)
       let tW_final = Math.max(10, Math.min(40, 16 + (safeBMI - 22) * 1.2));
       torso.setAttribute('d', `M ${50 - tW_final} 45 Q 50 40 ${50 + tW_final} 45 L ${50 + tW_final - 5} 75 Q 50 78 ${50 - tW_final + 5} 75 Z`);
