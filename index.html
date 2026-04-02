@@ -1685,6 +1685,11 @@
       font-weight: 800;
       text-transform: uppercase;
     }
+
+    model-viewer#v-3d-model {
+      --progress-bar-color: var(--purple);
+      --progress-bar-height: 4px;
+    }
   </style>
 </head>
 
@@ -2470,25 +2475,25 @@
           <div style="font-size:14px; font-weight:600; margin:15px 0 10px;">Premium 3D Galeri (Hızlı Seçim) ✨</div>
           <div class="preset-3d-grid">
             <div class="preset-3d-card"
-              onclick="selectPreset3D('https://models.readyplayer.me/64db0867011d8d9b1a512704.glb', this)">
+              onclick="selectPreset3D('https://models.readyplayer.me/660c18408f972b226e641470.glb', this)">
               <span class="badge-3d">3D</span>
               <span class="preset-3d-icon">🤵‍♂️</span>
               <span class="preset-3d-label">Modern Erkek</span>
             </div>
             <div class="preset-3d-card"
-              onclick="selectPreset3D('https://models.readyplayer.me/64db089f011d8d9b1a512711.glb', this)">
+              onclick="selectPreset3D('https://models.readyplayer.me/660c18608f972b226e641473.glb', this)">
               <span class="badge-3d">3D</span>
               <span class="preset-3d-icon">👩‍💼</span>
               <span class="preset-3d-label">Modern Kadın</span>
             </div>
             <div class="preset-3d-card"
-              onclick="selectPreset3D('https://models.readyplayer.me/64db08d8011d8d9b1a51271f.glb', this)">
+              onclick="selectPreset3D('https://models.readyplayer.me/660c187b8f972b226e641478.glb', this)">
               <span class="badge-3d">3D</span>
               <span class="preset-3d-icon">👟</span>
               <span class="preset-3d-label">Sportif İkiz</span>
             </div>
             <div class="preset-3d-card"
-              onclick="selectPreset3D('https://models.readyplayer.me/64db091c011d8d9b1a51272d.glb', this)">
+              onclick="selectPreset3D('https://models.readyplayer.me/660c18a28f972b226e64147f.glb', this)">
               <span class="badge-3d">3D</span>
               <span class="preset-3d-icon">🚀</span>
               <span class="preset-3d-label">Gelecekçi (Tech)</span>
@@ -2733,10 +2738,16 @@
           window.currentUserAgeGroup = data.age_group || 'yetiskin';
           window.currentUserAvatarId = data.avatar_id || 'm1';
           window.currentUserAvatarUrl = data.avatar_url || null;
-          document.getElementById('sidebar').style.display = 'flex';
+          const topNav = document.getElementById('top-nav');
+          if (topNav) topNav.style.display = 'flex';
+          const bottomNav = document.querySelector('.bottom-nav');
+          if (bottomNav) bottomNav.style.display = 'flex';
           navigateTo('dashboard');
         } else {
-          document.getElementById('sidebar').style.display = 'none';
+          const topNav = document.getElementById('top-nav');
+          if (topNav) topNav.style.display = 'none';
+          const bottomNav = document.querySelector('.bottom-nav');
+          if (bottomNav) bottomNav.style.display = 'none';
           document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
           document.getElementById('view-auth').classList.add('active');
         }
@@ -3452,7 +3463,7 @@
       // 1. 3D Render Check (Container content management)
       if (avatarUrl && visualContainer) {
         if (!visualContainer.querySelector('model-viewer') || visualContainer.querySelector('model-viewer').src !== avatarUrl) {
-          visualContainer.innerHTML = `<model-viewer src="${avatarUrl}" camera-controls auto-rotate shadow-intensity="1" environment-image="neutral" exposure="1" interaction-prompt="none" style="width:100%; height:100%;"></model-viewer>`;
+          visualContainer.innerHTML = `<model-viewer id="v-3d-model" src="${avatarUrl}" camera-controls auto-rotate shadow-intensity="1.5" shadow-softness="1" environment-image="neutral" exposure="1" interaction-prompt="none" style="width:100%; height:100%;"></model-viewer>`;
         }
       } else if (visualContainer && visualContainer.querySelector('model-viewer')) {
         visualContainer.innerHTML = `<div class="v-twin-aura" id="v-aura"></div><svg viewBox="0 0 100 120" id="v-character"></svg>`;
