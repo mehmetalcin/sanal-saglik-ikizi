@@ -1,0 +1,7 @@
+.DS_Store
+*.js
+!index.html
+*.pdf
+api/delete_log.txt
+/brain/
+node_modules/

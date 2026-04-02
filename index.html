@@ -1,0 +1,4097 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description"
+    content="Kişisel Sağlık Asistanı – Boy, kilo, tansiyon, nabız ve adım verilerinizi takip edin." />
+  <title>Sağlık Asistanım</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
+  <style>
+    /* ─── Reset & Base ─────────────────────────────────────────────────── */
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg: #0b0d14;
+      --surface: #12151f;
+      --surface2: #1a1e2e;
+      --surface3: #222640;
+      --border: rgba(255, 255, 255, 0.07);
+      --purple: #6c63ff;
+      --teal: #00d4aa;
+      --pink: #ff6b9d;
+      --amber: #ffa947;
+      --red: #ff4d6d;
+      --text: #e8eaf0;
+      --text2: rgba(232, 234, 240, 0.6);
+      --text3: rgba(232, 234, 240, 0.35);
+      --radius: 16px;
+      --shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    }
+
+    html,
+    body {
+      height: 100%;
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      overflow: hidden;
+    }
+
+    /* ─── Layout ────────────────────────────────────────────────────────── */
+    .app-layout {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+      background: var(--bg);
+    }
+
+    /* ─── Top Navbar ────────────────────────────────────────────────────── */
+    .top-nav {
+      height: 70px;
+      min-height: 70px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      z-index: 50;
+    }
+
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, var(--purple), var(--teal));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      box-shadow: 0 0 20px rgba(108, 99, 255, 0.3);
+    }
+
+    .logo-text h1 {
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    .logo-text p {
+      font-size: 11px;
+      color: var(--text3);
+      margin: 0;
+    }
+
+    .nav-section {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 16px;
+      border-radius: 20px;
+      cursor: pointer;
+      transition: all 0.2s;
+      color: var(--text2);
+      font-size: 13px;
+      font-weight: 600;
+      border: none;
+      background: none;
+      user-select: none;
+    }
+
+    .nav-item:hover {
+      background: var(--surface2);
+      color: var(--text);
+    }
+
+    .nav-item.active {
+      background: linear-gradient(135deg, rgba(108, 99, 255, 0.2), rgba(0, 212, 170, 0.1));
+      color: var(--text);
+      border: 1px solid rgba(108, 99, 255, 0.3);
+    }
+
+    .nav-icon {
+      font-size: 16px;
+    }
+
+    .top-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .btn-quick-add {
+      background: linear-gradient(135deg, var(--teal), #00b38f);
+      color: #fff;
+      border: none;
+      padding: 10px 18px;
+      border-radius: 20px;
+      font-weight: 700;
+      font-size: 13px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 4px 12px rgba(0, 212, 170, 0.3);
+      transition: transform 0.2s, opacity 0.2s;
+    }
+
+    .btn-quick-add:hover {
+      transform: translateY(-1px);
+      opacity: 0.9;
+    }
+
+    .logout-btn {
+      background: none;
+      border: none;
+      color: var(--text3);
+      font-size: 12px;
+      cursor: pointer;
+      text-decoration: underline;
+    }
+
+    .logout-btn:hover {
+      color: var(--text);
+    }
+
+    /* ─── Right Drawer ──────────────────────────────────────────────────── */
+    .right-drawer {
+      position: fixed;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      width: 440px;
+      max-width: 100vw;
+      background: var(--bg);
+      border-left: 1px solid var(--border);
+      z-index: 100;
+      transform: translateX(100%);
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: -8px 0 32px rgba(0, 0, 0, 0.5);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .right-drawer.open {
+      transform: translateX(0);
+    }
+
+    .drawer-header {
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--surface);
+    }
+
+    .drawer-header h2 {
+      font-size: 18px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .drawer-close {
+      background: var(--surface2);
+      border: none;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      color: var(--text);
+      font-size: 18px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s;
+    }
+
+    .drawer-close:hover {
+      background: var(--surface3);
+    }
+
+    .drawer-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px;
+    }
+
+    /* ─── Bottom Nav (Mobile Only) ─────────────────────────────────────── */
+    .bottom-nav {
+      display: none;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      height: 65px;
+      z-index: 80;
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    /* ─── Main ──────────────────────────────────────────────────────────── */
+    .main-content {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .content-header {
+      padding: 20px 28px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      position: sticky;
+      top: 0;
+      background: var(--bg);
+      z-index: 5;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .hamburger {
+      display: none;
+      background: none;
+      border: none;
+      color: var(--text);
+      font-size: 22px;
+      cursor: pointer;
+    }
+
+    .content-header h2 {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.4px;
+    }
+
+    .content-body {
+      padding: 24px 28px;
+      flex: 1;
+    }
+
+    .view {
+      display: none;
+    }
+
+    .view.active {
+      display: block;
+    }
+
+    /* ─── Summary Cards ─────────────────────────────────────────────────── */
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 14px;
+      margin-bottom: 28px;
+    }
+
+    /* ─── Virtual Twin Styles ────────────────────────────────────────── */
+    .v-twin-card {
+      grid-column: 1 / -1;
+      /* Full width on grid */
+      background: linear-gradient(145deg, var(--surface), var(--surface2));
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      padding: 20px;
+      position: relative;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+    }
+
+    .v-twin-visual {
+      width: 120px;
+      height: 120px;
+      position: relative;
+      filter: drop-shadow(0 10px 15px rgba(0, 0, 0, 0.2));
+      transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .v-twin-svg {
+      width: 100%;
+      height: 100%;
+      animation: v-float 3s ease-in-out infinite;
+    }
+
+    @keyframes v-float {
+
+      0%,
+      100% {
+        transform: translateY(0);
+      }
+
+      50% {
+        transform: translateY(-8px);
+      }
+    }
+
+    .v-twin-aura {
+      position: absolute;
+      inset: -20px;
+      background: radial-gradient(circle, var(--purple) 0%, transparent 70%);
+      opacity: 0.1;
+      filter: blur(20px);
+      transition: opacity 1s, background 1s;
+    }
+
+    .v-twin-info {
+      flex: 1;
+      padding-left: 30px;
+    }
+
+    .v-twin-name {
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--text);
+      margin-bottom: 5px;
+    }
+
+    .v-twin-status {
+      font-size: 13px;
+      color: var(--text2);
+    }
+
+    .v-twin-bubble {
+      position: absolute;
+      top: 10px;
+      right: 20px;
+      background: var(--surface2);
+      padding: 10px 15px;
+      border-radius: 12px;
+      font-size: 12px;
+      box-shadow: var(--shadow);
+      opacity: 0;
+      transform: translateY(10px);
+      transition: transform 0.3s, opacity 0.3s;
+      pointer-events: none;
+      max-width: 150px;
+    }
+
+    .v-twin-bubble.active {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .summary-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      transition: transform 0.2s, box-shadow 0.2s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .summary-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--purple), var(--teal));
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+
+    .summary-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow);
+    }
+
+    .summary-card:hover::before {
+      opacity: 1;
+    }
+
+    .card-icon {
+      font-size: 24px;
+    }
+
+    .progress-ring {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background: conic-gradient(var(--good, #00d4aa) var(--progress, 0%), var(--danger, #ff4d4d) var(--progress, 0%));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      margin-bottom: 12px;
+    }
+
+    .progress-ring::before {
+      content: "";
+      position: absolute;
+      inset: 4px;
+      background: var(--surface);
+      border-radius: 50%;
+    }
+
+    .progress-ring-icon {
+      position: relative;
+      z-index: 10;
+      font-size: 22px;
+    }
+
+    .card-label {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--text3);
+    }
+
+    .card-value {
+      font-size: 26px;
+      font-weight: 700;
+      letter-spacing: -1px;
+    }
+
+    .card-status {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 20px;
+      width: fit-content;
+    }
+
+    .card-status.good {
+      background: rgba(0, 212, 170, 0.15);
+      color: var(--teal);
+    }
+
+    .card-status.warn {
+      background: rgba(255, 169, 71, 0.15);
+      color: var(--amber);
+    }
+
+    .card-status.danger {
+      background: rgba(255, 77, 109, 0.15);
+      color: var(--red);
+    }
+
+    .card-status.neutral {
+      background: var(--surface2);
+      color: var(--text3);
+    }
+
+    /* ─── No Data ───────────────────────────────────────────────────────── */
+    #no-data-msg {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text2);
+    }
+
+    #no-data-msg .no-data-icon {
+      font-size: 56px;
+      margin-bottom: 14px;
+    }
+
+    #no-data-msg h3 {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: var(--text);
+    }
+
+    #no-data-msg p {
+      font-size: 14px;
+      max-width: 320px;
+      margin: 0 auto 20px;
+    }
+
+    .no-data-cta {
+      display: inline-block;
+      padding: 10px 24px;
+      background: linear-gradient(135deg, var(--purple), var(--teal));
+      color: #fff;
+      border-radius: 30px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      font-family: inherit;
+      transition: opacity 0.2s;
+    }
+
+    .no-data-cta:hover {
+      opacity: 0.85;
+    }
+
+    /* ─── Charts ────────────────────────────────────────────────────────── */
+    #charts-section {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 18px;
+    }
+
+    .chart-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px;
+    }
+
+    .chart-card h3 {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: var(--text2);
+      margin-bottom: 14px;
+    }
+
+    .chart-wrap {
+      height: 190px;
+      position: relative;
+    }
+
+    /* ─── Form ──────────────────────────────────────────────────────────── */
+    .form-container {
+      max-width: 680px;
+    }
+
+    .form-section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 22px;
+      margin-bottom: 16px;
+    }
+
+    .form-section-title {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--text3);
+      margin-bottom: 16px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .form-group.full {
+      grid-column: 1 / -1;
+    }
+
+    label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: var(--text2);
+    }
+
+    .input-wrap {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .input-icon {
+      position: absolute;
+      left: 13px;
+      font-size: 15px;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    input[type="text"],
+    input[type="number"],
+    input[type="date"],
+    textarea {
+      width: 100%;
+      padding: 11px 13px 11px 40px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+
+    input:focus,
+    textarea:focus {
+      border-color: var(--purple);
+      box-shadow: 0 0 0 3px rgba(108, 99, 255, 0.15);
+    }
+
+    input[type="date"]::-webkit-calendar-picker-indicator {
+      filter: invert(1) opacity(0.4);
+      cursor: pointer;
+    }
+
+    textarea {
+      padding-left: 13px;
+      resize: vertical;
+      min-height: 75px;
+    }
+
+    .input-suffix {
+      position: absolute;
+      right: 12px;
+      font-size: 11px;
+      color: var(--text3);
+      font-weight: 600;
+      pointer-events: none;
+    }
+
+    .bp-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .bp-row .input-wrap {
+      flex: 1;
+    }
+
+    .bp-sep {
+      font-size: 18px;
+      color: var(--text3);
+      padding-bottom: 2px;
+      flex-shrink: 0;
+    }
+
+    #bmi-preview {
+      display: none;
+      font-size: 13px;
+      color: var(--text2);
+      padding: 8px 12px;
+      background: var(--surface3);
+      border-radius: 8px;
+      margin-top: 4px;
+    }
+
+    #bmi-preview .good {
+      color: var(--teal);
+    }
+
+    #bmi-preview .warn {
+      color: var(--amber);
+    }
+
+    #bmi-preview .danger {
+      color: var(--red);
+    }
+
+    .form-actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 6px;
+    }
+
+    .btn-primary {
+      padding: 12px 28px;
+      background: linear-gradient(135deg, var(--purple), #4f46e5);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+      box-shadow: 0 4px 16px rgba(108, 99, 255, 0.3);
+    }
+
+    .btn-primary:hover {
+      opacity: 0.9;
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      padding: 12px 20px;
+      background: var(--surface2);
+      color: var(--text2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-family: inherit;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    .btn-secondary:hover {
+      background: var(--surface3);
+      color: var(--text);
+    }
+
+    #entry-result {
+      display: none;
+      margin-top: 16px;
+    }
+
+    .result-box {
+      background: var(--surface2);
+      border: 1px solid rgba(108, 99, 255, 0.25);
+      border-radius: 12px;
+      padding: 16px 20px;
+      display: flex;
+      gap: 28px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .result-item {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .result-label {
+      font-size: 10px;
+      color: var(--text3);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+    }
+
+    .result-value {
+      font-size: 22px;
+      font-weight: 700;
+    }
+
+    .result-value.good {
+      color: var(--teal);
+    }
+
+    .result-value.warn {
+      color: var(--amber);
+    }
+
+    .result-value.danger {
+      color: var(--red);
+    }
+
+    /* ─── History ───────────────────────────────────────────────────────── */
+    .history-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 18px;
+      margin-bottom: 10px;
+      position: relative;
+      transition: border-color 0.2s;
+    }
+
+    .history-card:hover {
+      border-color: rgba(108, 99, 255, 0.3);
+    }
+
+    .history-date {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--purple);
+      margin-bottom: 8px;
+    }
+
+    .history-metrics {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .hm {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 11px;
+      background: var(--surface2);
+      border-radius: 20px;
+      font-size: 12px;
+      color: var(--text2);
+    }
+
+    .hm.badge.good {
+      background: rgba(0, 212, 170, 0.12);
+      color: var(--teal);
+      font-weight: 600;
+    }
+
+    .hm.badge.warn {
+      background: rgba(255, 169, 71, 0.12);
+      color: var(--amber);
+      font-weight: 600;
+    }
+
+    .hm.badge.danger {
+      background: rgba(255, 77, 109, 0.12);
+      color: var(--red);
+      font-weight: 600;
+    }
+
+    .hm.badge.neutral {
+      color: var(--text3);
+      font-weight: 600;
+    }
+
+    .history-notes {
+      margin-top: 8px;
+      font-size: 12px;
+      color: var(--text2);
+      font-style: italic;
+    }
+
+    .delete-btn {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      background: none;
+      border: none;
+      font-size: 15px;
+      cursor: pointer;
+      opacity: 0.3;
+      transition: opacity 0.2s;
+      padding: 3px;
+      border-radius: 5px;
+    }
+
+    .delete-btn:hover {
+      opacity: 1;
+      background: rgba(255, 77, 109, 0.1);
+    }
+
+    /* ─── Recommendations ───────────────────────────────────────────────── */
+    .tip-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px;
+      display: flex;
+      gap: 16px;
+      margin-bottom: 12px;
+      transition: transform 0.2s, border-color 0.2s;
+    }
+
+    .tip-card:hover {
+      transform: translateX(4px);
+      border-color: rgba(108, 99, 255, 0.25);
+    }
+
+    .lab-badge {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      background: rgba(0, 212, 170, 0.12);
+      color: var(--good);
+    }
+
+    .lab-badge.warn {
+      background: rgba(255, 193, 7, 0.15);
+      color: var(--warn);
+    }
+
+    .lab-badge.danger {
+      background: rgba(255, 77, 77, 0.15);
+      color: var(--danger);
+    }
+
+    .tip-icon {
+      font-size: 30px;
+      flex-shrink: 0;
+      line-height: 1;
+      margin-top: 2px;
+    }
+
+    .tip-category {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.7px;
+      padding: 2px 9px;
+      border-radius: 20px;
+      background: rgba(108, 99, 255, 0.15);
+      color: var(--purple);
+      margin-bottom: 4px;
+    }
+
+    .tip-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+
+    .tip-text {
+      font-size: 13px;
+      color: var(--text2);
+      line-height: 1.7;
+    }
+
+    /* ─── Toast ─────────────────────────────────────────────────────────── */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      padding: 16px 24px;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 600;
+      color: #fff;
+      background: #333;
+      border: 2px solid var(--border);
+      opacity: 0;
+      transform: translateY(20px);
+      transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      pointer-events: auto;
+      z-index: 9999;
+      max-width: 400px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .toast.success {
+      background: #00d4aa;
+      border-color: #008f72;
+    }
+
+    .toast.error {
+      background: #d90429;
+      border-color: #ef233c;
+    }
+
+    .toast.info {
+      background: #4f46e5;
+      border-color: #6366f1;
+    }
+
+    .toast-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+      padding-bottom: 5px;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .toast-copy-btn {
+      background: rgba(255, 255, 255, 0.2);
+      border: none;
+      color: #fff;
+      padding: 3px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 10px;
+    }
+
+    .toast-copy-btn:hover {
+      background: rgba(255, 255, 255, 0.4);
+    }
+
+    .toast-msg {
+      word-break: break-word;
+      line-height: 1.5;
+      max-height: 300px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      font-family: monospace;
+      font-size: 11px;
+      background: rgba(0, 0, 0, 0.1);
+      padding: 8px;
+      border-radius: 6px;
+    }
+
+    .empty-msg {
+      text-align: center;
+      color: var(--text3);
+      padding: 60px 20px;
+      font-size: 14px;
+    }
+
+    /* ─── Section Save Button ───────────────────────────────────────────── */
+    .section-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 16px;
+      padding-top: 14px;
+      border-top: 1px solid var(--border);
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .section-save-btn {
+      padding: 10px 22px;
+      background: linear-gradient(135deg, var(--purple), #4f46e5);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+      box-shadow: 0 3px 12px rgba(108, 99, 255, 0.3);
+    }
+
+    .section-save-btn:hover {
+      opacity: 0.88;
+      transform: translateY(-1px);
+    }
+
+    .date-bar {
+      background: var(--surface);
+      border: 1px solid rgba(108, 99, 255, 0.25);
+      border-radius: var(--radius);
+      padding: 16px 22px;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    .date-bar label {
+      color: var(--text2);
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .6px;
+      white-space: nowrap;
+    }
+
+    .date-bar .input-wrap {
+      flex: 1;
+      min-width: 160px;
+      max-width: 260px;
+    }
+
+    /* ─── Custom Confirm Modal ──────────────────────────────────────────── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(4px);
+      z-index: 9000;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-overlay.open {
+      display: flex;
+    }
+
+    .modal-box {
+      background: var(--surface);
+      border: 1px solid rgba(255, 77, 109, 0.3);
+      border-radius: 18px;
+      padding: 28px 32px;
+      max-width: 380px;
+      width: 90%;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+      animation: modalIn 0.2s ease;
+    }
+
+    @keyframes modalIn {
+      from {
+        opacity: 0;
+        transform: scale(0.93) translateY(10px);
+      }
+
+      to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+      }
+    }
+
+    .modal-icon {
+      font-size: 36px;
+      margin-bottom: 12px;
+    }
+
+    .modal-title {
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 8px;
+    }
+
+    .modal-desc {
+      font-size: 13px;
+      color: var(--text2);
+      margin-bottom: 24px;
+      line-height: 1.6;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+    }
+
+    .btn-danger {
+      padding: 10px 22px;
+      background: rgba(255, 77, 109, 0.15);
+      color: var(--red);
+      border: 1px solid rgba(255, 77, 109, 0.35);
+      border-radius: 10px;
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .btn-danger:hover {
+      background: rgba(255, 77, 109, 0.3);
+    }
+
+    /* ─── Chart Filter Pills ──────────────────────────────────────────── */
+    .chart-filters {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 18px;
+      flex-wrap: wrap;
+    }
+
+    .chart-filter-btn {
+      padding: 7px 16px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text2);
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all .2s;
+    }
+
+    .chart-filter-btn:hover {
+      background: var(--surface2);
+      color: var(--text);
+    }
+
+    .chart-filter-btn.active {
+      background: linear-gradient(135deg, var(--purple), #4f46e5);
+      color: #fff;
+      border-color: transparent;
+      box-shadow: 0 2px 10px rgba(108, 99, 255, .3);
+    }
+
+    /* ─── History Filter Bar ────────────────────────────────────────────── */
+    .history-toolbar {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 18px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .history-toolbar select,
+    .history-toolbar input[type="date"] {
+      padding: 9px 14px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 13px;
+      outline: none;
+    }
+
+    .history-toolbar select:focus,
+    .history-toolbar input[type="date"]:focus {
+      border-color: var(--purple);
+    }
+
+    .history-toolbar label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text3);
+      text-transform: uppercase;
+      letter-spacing: .5px;
+    }
+
+    .history-toolbar .filter-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .history-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0 6px;
+    }
+
+    .history-table th {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .7px;
+      color: var(--text3);
+      padding: 8px 14px;
+      text-align: left;
+    }
+
+    .history-table td {
+      padding: 12px 14px;
+      background: var(--surface);
+      font-size: 13px;
+      color: var(--text);
+    }
+
+    .history-table tr td:first-child {
+      border-radius: 10px 0 0 10px;
+    }
+
+    .history-table tr td:last-child {
+      border-radius: 0 10px 10px 0;
+    }
+
+    .history-table tr:hover td {
+      background: var(--surface2);
+    }
+
+    .metric-icon {
+      margin-right: 6px;
+    }
+
+    .history-stat-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .history-stat {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px;
+      text-align: center;
+    }
+
+    .history-stat .stat-label {
+      font-size: 10px;
+      color: var(--text3);
+      text-transform: uppercase;
+      font-weight: 700;
+      letter-spacing: .6px;
+    }
+
+    .history-stat .stat-value {
+      border-bottom: 2px solid transparent;
+      padding-bottom: 4px;
+      margin-top: 4px;
+    }
+
+    /* ─── History Table ─────────────────────────────────────────────────── */
+    .history-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0 10px;
+    }
+
+    .history-table th {
+      text-align: left;
+      padding: 0 16px;
+      color: var(--text3);
+      font-size: 11px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .history-table td {
+      background: var(--surface2);
+      padding: 16px;
+      vertical-align: middle;
+    }
+
+    .history-table td:first-child {
+      border-top-left-radius: 12px;
+      border-bottom-left-radius: 12px;
+      color: var(--text2);
+      font-size: 13px;
+    }
+
+    .history-table td:last-child {
+      border-top-right-radius: 12px;
+      border-bottom-right-radius: 12px;
+      opacity: 0.7;
+    }
+
+    .history-table tr:hover td:last-child {
+      opacity: 1;
+    }
+
+    /* ─── Food Suggestions ──────────────────────────────────────────────── */
+    .food-suggestions {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: var(--surface);
+      border: 1px solid var(--purple);
+      border-radius: 10px;
+      margin-top: 4px;
+      max-height: 200px;
+      overflow-y: auto;
+      z-index: 1000;
+      box-shadow: var(--shadow);
+      display: none;
+    }
+
+    .food-suggestion-item {
+      padding: 10px 14px;
+      font-size: 13px;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .food-suggestion-item:last-child {
+      border-bottom: none;
+    }
+
+    .food-suggestion-item:hover {
+      background: var(--surface2);
+    }
+
+    .food-suggestion-item .food-cal {
+      color: var(--teal);
+      font-weight: 700;
+    }
+
+    /* ─── Scrollbar ─────────────────────────────────────────────────────── */
+    ::-webkit-scrollbar {
+      width: 5px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--surface3);
+      border-radius: 10px;
+    }
+
+    .target-controls {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-left: 8px;
+    }
+
+    .target-controls button {
+      background: var(--surface3);
+      border: 1px solid var(--border);
+      color: var(--text2);
+      border-radius: 4px;
+      width: 24px;
+      height: 24px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+    }
+
+    .target-controls button:hover {
+      background: var(--surface);
+      color: var(--text);
+    }
+
+    /* ─── Responsive ────────────────────────────────────────────────────── */
+    @media (max-width: 900px) {
+      #charts-section {
+        grid-template-columns: 1fr;
+      }
+
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .history-table {
+        font-size: 12px;
+      }
+    }
+
+    .sidebar-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.6);
+      z-index: 90;
+      backdrop-filter: blur(2px);
+      transition: opacity 0.3s ease;
+      opacity: 0;
+    }
+
+    .sidebar-overlay.show {
+      display: block;
+      opacity: 1;
+    }
+
+    @media (max-width: 700px) {
+      .top-nav {
+        padding: 0 14px;
+      }
+
+      .nav-section {
+        display: none;
+        /* Üst menüyü mobilde gizle */
+      }
+
+      .bottom-nav {
+        display: flex;
+        justify-content: space-around;
+        align-items: center;
+      }
+
+      .app-layout {
+        padding-bottom: 65px;
+        /* Alt bar için boşluk */
+      }
+
+      .bottom-nav .nav-item {
+        flex-direction: column;
+        gap: 4px;
+        font-size: 10px;
+        padding: 8px;
+        border-radius: 12px;
+        width: auto;
+        margin-top: 4px;
+      }
+
+      .bottom-nav .nav-item.active {
+        background: none;
+        border: none;
+        color: var(--teal);
+      }
+
+      .bottom-nav .nav-item.active .nav-icon {
+        color: var(--teal);
+      }
+
+      .bottom-nav .nav-icon {
+        font-size: 20px;
+      }
+
+      .hamburger {
+        display: none;
+      }
+
+      .content-body {
+        padding: 18px 14px;
+      }
+
+      .summary-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      input[type="text"],
+      input[type="number"],
+      input[type="date"],
+      input[type="password"],
+      textarea {
+        font-size: 16px;
+      }
+
+      button.btn-primary,
+      button.btn-secondary,
+      .section-save-btn {
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .summary-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="app-layout">
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+    <!-- Top Navbar -->
+    <header class="top-nav" id="top-nav">
+      <div class="nav-brand">
+        <div class="logo-icon">🫀</div>
+        <div class="logo-text">
+          <h1>Sağlık Asistanım</h1>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <p id="user-display" style="margin:0;">Kişisel sağlık takibi</p>
+            <button onclick="openProfileModal()"
+              style="background:none; border:none; color:var(--purple); cursor:pointer; font-size:16px; padding:0; display:flex; align-items:center;"
+              title="Profili Düzenle">⚙️</button>
+          </div>
+        </div>
+      </div>
+      <button class="nav-item active" data-view="dashboard"><span class="nav-icon">📊</span>Gösterge Paneli</button>
+      <button class="nav-item" data-view="history"><span class="nav-icon">📋</span>Geçmiş</button>
+      <button class="nav-item" data-view="recommendations"><span class="nav-icon">💡</span>Öneriler</button>
+      <button class="nav-item" data-view="labs"><span class="nav-icon">🔬</span>Tahlillerim</button>
+      </nav>
+      <div class="top-actions">
+        <button class="btn-quick-add" id="btn-quick-add-top">➕ Veri Ekle</button>
+        <button onclick="logout()" class="logout-btn">Çıkış Yap</button>
+      </div>
+    </header>
+
+    <!-- Bottom Navbar (Mobile Mode) -->
+    <nav class="bottom-nav">
+      <button class="nav-item active" data-view="dashboard"><span class="nav-icon">📊</span>Gösterge</button>
+      <button class="nav-item" data-view="history"><span class="nav-icon">📋</span>Geçmiş</button>
+      <button class="nav-item" data-view="recommendations"><span class="nav-icon">💡</span>Öneriler</button>
+      <button class="nav-item" data-view="labs"><span class="nav-icon">🔬</span>Tahlil</button>
+      <button class="nav-item btn-quick-add-mobile" id="btn-quick-add-bottom"><span
+          class="nav-icon">➕</span>Ekle</button>
+    </nav>
+
+    <!-- Main -->
+    <main class="main-content">
+
+      <!-- AUTH (LOGIN/REGISTER) -->
+      <style>
+        #view-auth.active {
+          display: flex !important;
+        }
+      </style>
+      <section id="view-auth" class="view" style="align-items: center; justify-content: center; min-height: 100vh;">
+        <div class="form-section" style="width: 100%; max-width: 400px; padding: 30px;">
+          <div style="text-align:center; margin-bottom:20px;">
+            <div style="font-size:40px;">🫀</div>
+            <h2 style="margin-top:10px;">Sağlık Asistanım</h2>
+            <p style="color:var(--text2); margin-top:5px;" id="auth-subtitle">Giriş yapın veya hesap oluşturun</p>
+          </div>
+
+          <div class="form-group">
+            <label>Kullanıcı Adı</label>
+            <input type="text" id="auth-user" placeholder="Kullanıcı adınız..."
+              style="width:100%; background:var(--input-bg); border:1px solid var(--border); color:var(--text); padding:12px; border-radius:10px; font-size:15px; outline:none; margin-top:5px;">
+          </div>
+          <div class="form-group" style="margin-top:15px;">
+            <label>Şifre</label>
+            <input type="password" id="auth-pass" placeholder="Şifreniz..."
+              style="width:100%; background:var(--input-bg); border:1px solid var(--border); color:var(--text); padding:12px; border-radius:10px; font-size:15px; outline:none; margin-top:5px;">
+          </div>
+
+          <div class="form-group" style="margin-top:15px; display:flex; gap:10px;" id="profile-group">
+            <div style="flex:1;">
+              <label>Cinsiyet</label>
+              <select id="auth-gender"
+                style="width:100%; background:var(--input-bg); border:1px solid var(--border); color:var(--text); padding:12px; border-radius:10px; font-size:15px; outline:none; margin-top:5px;">
+                <option value="erkek">Erkek</option>
+                <option value="kadin">Kadın</option>
+              </select>
+            </div>
+            <div style="flex:1;">
+              <label>Yaş Grubu</label>
+              <select id="auth-age"
+                style="width:100%; background:var(--input-bg); border:1px solid var(--border); color:var(--text); padding:12px; border-radius:10px; font-size:15px; outline:none; margin-top:5px;">
+                <option value="yetiskin">Yetişkin</option>
+                <option value="cocuk">Çocuk</option>
+              </select>
+            </div>
+          </div>
+
+          <div style="display:flex; gap:10px; margin-top:25px;">
+            <button onclick="handleAuth('login')" class="section-save-btn" style="flex:1;">Giriş Yap</button>
+            <button onclick="handleAuth('register')" class="section-save-btn"
+              style="flex:1; background:var(--surface2); color:var(--text);">Kayıt Ol</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- DASHBOARD -->
+      <section id="view-dashboard" class="view active">
+        <header class="content-header">
+          <button class="hamburger" id="hamburger">☰</button>
+          <h2>📊 Gösterge Paneli</h2>
+        </header>
+        <div class="content-body">
+          <div class="summary-grid">
+            <!-- Virtual Twin Card -->
+            <div class="v-twin-card" onclick="talkToV()">
+              <div class="v-twin-aura" id="v-aura"></div>
+              <div class="v-twin-visual" id="v-visual">
+                <svg viewBox="0 0 100 100" class="v-twin-svg" id="human-svg">
+                  <defs>
+                    <linearGradient id="grad-body" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" style="stop-color:var(--purple);stop-opacity:1" />
+                      <stop offset="100%" style="stop-color:#8e24aa;stop-opacity:1" />
+                    </linearGradient>
+                    <radialGradient id="grad-skin" cx="50%" cy="40%" r="60%">
+                      <stop offset="0%" style="stop-color:#ffdbac;stop-opacity:1" id="skin-light" />
+                      <stop offset="100%" style="stop-color:#f1c27d;stop-opacity:1" id="skin-dark" />
+                    </radialGradient>
+                    <radialGradient id="grad-head-shadow" cx="50%" cy="50%" r="50%">
+                      <stop offset="80%" style="stop-color:rgba(0,0,0,0)" />
+                      <stop offset="100%" style="stop-color:rgba(0,0,0,0.1)" />
+                    </radialGradient>
+                    <style>
+                      @keyframes v-blink {
+
+                        0%,
+                        90%,
+                        100% {
+                          transform: scaleY(1);
+                        }
+
+                        95% {
+                          transform: scaleY(0.1);
+                        }
+                      }
+
+                      @keyframes v-breath {
+
+                        0%,
+                        100% {
+                          transform: scale(1);
+                        }
+
+                        50% {
+                          transform: scale(1.03);
+                        }
+                      }
+
+                      @keyframes v-float {
+
+                        0%,
+                        100% {
+                          transform: translateY(0);
+                        }
+
+                        50% {
+                          transform: translateY(-3px);
+                        }
+                      }
+
+                      .v-eye {
+                        transform-origin: center;
+                        animation: v-blink 4s infinite;
+                      }
+
+                      .v-main-char {
+                        animation: v-float 3s ease-in-out infinite;
+                      }
+
+                      #v-torso {
+                        transform-origin: center;
+                        animation: v-breath 4s ease-in-out infinite;
+                      }
+                    </style>
+                  </defs>
+                  <!-- Aura/Shadow -->
+                  <ellipse cx="50" cy="95" rx="20" ry="5" fill="rgba(0,0,0,0.2)" />
+
+                  <!-- Character Group -->
+                  <g id="v-character" class="v-main-char"
+                    style="transition: transform 0.5s; transform-origin: bottom center;">
+                    <!-- Legs & Arms (Generic Humanoid) -->
+                    <path d="M 42 75 L 42 95 M 58 75 L 58 95" stroke="url(#grad-body)" stroke-width="8"
+                      stroke-linecap="round" />
+                    <path d="M 35 48 L 25 65 M 65 48 L 75 65" stroke="url(#grad-body)" stroke-width="6"
+                      stroke-linecap="round" />
+
+                    <!-- Torso -->
+                    <path id="v-torso" d="M 35 45 Q 50 40 65 45 L 60 75 Q 50 78 40 75 Z" fill="url(#grad-body)"
+                      style="transition: all 0.5s;" />
+
+                    <!-- Volumetric Head -->
+                    <g id="v-head-v3">
+                      <!-- Base Skin Shape (Dynamic Jawline) -->
+                      <path id="v-skin-base" d="M 38 35 Q 38 18 50 18 Q 62 18 62 35 Q 62 45 50 45 Q 38 45 38 35"
+                        fill="url(#grad-skin)" />
+                      <path d="M 38 35 Q 38 18 50 18 Q 62 18 62 35 Q 62 45 50 45 Q 38 45 38 35"
+                        fill="url(#grad-head-shadow)" />
+
+                      <!-- Facial Features -->
+                      <g id="v-features">
+                        <!-- Glasses (Toggleable) -->
+                        <g id="v-glasses" style="display:none;">
+                          <circle cx="44" cy="32" r="5" stroke="#333" stroke-width="1" fill="rgba(0,0,0,0.1)" />
+                          <circle cx="56" cy="32" r="5" stroke="#333" stroke-width="1" fill="rgba(0,0,0,0.1)" />
+                          <path d="M 49 32 L 51 32" stroke="#333" stroke-width="1" />
+                        </g>
+
+                        <!-- Sunglasses (Toggleable) -->
+                        <g id="v-sunglasses" style="display:none;">
+                          <rect x="40" y="30" width="8" height="6" rx="2" fill="#222" />
+                          <rect x="52" y="30" width="8" height="6" rx="2" fill="#222" />
+                          <path d="M 48 32 L 52 32" stroke="#222" stroke-width="2" />
+                        </g>
+
+                        <!-- Beard / Mustache (Toggleable) -->
+                        <g id="v-facial-hair" style="display:none;">
+                          <path d="M 42 38 Q 50 42 58 38" stroke="#333" stroke-width="2" fill="none"
+                            stroke-linecap="round" />
+                          <path d="M 40 40 Q 50 48 60 40 L 58 45 Q 50 50 42 45 Z" fill="#333" opacity="0.9" />
+                        </g>
+
+                        <!-- Basic Eyes (fallback) -->
+                        <g id="v-eyes-basic">
+                          <circle class="v-eye" cx="45" cy="32" r="1.2" fill="#333" />
+                          <circle class="v-eye" cx="55" cy="32" r="1.2" fill="#333" />
+                        </g>
+
+                        <!-- Mouth -->
+                        <path id="v-mouth" d="M 46 40 Q 50 43 54 40" stroke="#333" stroke-width="1" fill="white"
+                          stroke-linecap="round" />
+                      </g>
+
+                      <!-- Hair Styles (Dynamic) -->
+                      <path id="v-hair-style" d="M 40 22 Q 50 12 60 22" stroke="#333" stroke-width="8" fill="none"
+                        stroke-linecap="round" />
+                      <g id="v-hair-extra" style="display:none;">
+                        <circle cx="35" cy="25" r="5" fill="#333" />
+                        <circle cx="65" cy="25" r="5" fill="#333" />
+                        <!-- Tiny Earrings -->
+                        <circle cx="34" cy="38" r="1" fill="#ddd" />
+                        <circle cx="66" cy="38" r="1" fill="#ddd" />
+                      </g>
+                    </g>
+                  </g>
+                </svg>
+              </div>
+              <div class="v-twin-info">
+                <div class="v-twin-name">Sanal İkizim</div>
+                <div class="v-twin-status" id="v-status">Durum: Harika ✨</div>
+                <div
+                  style="width:100%; height:6px; background:var(--surface2); border-radius:3px; margin-top:10px; overflow:hidden;">
+                  <div id="v-vitality"
+                    style="width: 100%; height:100%; background:linear-gradient(to right, var(--purple), var(--teal)); transition: width 1s;">
+                  </div>
+                </div>
+              </div>
+              <div class="v-twin-bubble" id="v-bubble">Harika görünüyorsun!</div>
+            </div>
+            <div class="summary-card">
+              <div class="card-icon">🔢</div>
+              <div class="card-label">Vücut Kitle Endeksi</div>
+              <div class="card-value" id="card-bmi-value">—</div>
+              <div class="card-status neutral" id="card-bmi-label">—</div>
+            </div>
+            <div class="summary-card">
+              <div class="card-icon">⚖️</div>
+              <div class="card-label">Güncel Kilo</div>
+              <div class="card-value" id="card-weight-value">—</div>
+            </div>
+            <div class="summary-card">
+              <div class="card-icon">❤️</div>
+              <div class="card-label">Güncel Tansiyon</div>
+              <div class="card-value" id="card-bp-value">—</div>
+              <div class="card-status neutral" id="card-bp-label">—</div>
+            </div>
+            <div class="summary-card">
+              <div class="card-icon">💓</div>
+              <div class="card-label">Güncel Nabız</div>
+              <div class="card-value" id="card-pulse-value">—</div>
+              <div class="card-status neutral" id="card-pulse-label">—</div>
+            </div>
+            <div class="summary-card">
+              <div class="progress-ring" id="ring-steps" style="--progress: 0%">
+                <div class="progress-ring-icon">👟</div>
+              </div>
+              <div class="card-label">Günlük Adım (Hedef: <span id="target-steps-lbl">8000</span>)
+                <span class="target-controls"><button onclick="adjTarget('steps', -500)">-</button><button
+                    onclick="adjTarget('steps', 500)">+</button></span>
+              </div>
+              <div class="card-value" id="card-steps-value">—</div>
+              <div class="card-status neutral" id="card-steps-label" style="margin-bottom:8px;">—</div>
+              <div style="display:flex; gap:8px; margin-top:auto;">
+                <button class="section-save-btn"
+                  style="flex:1; background:var(--purple); border-radius:8px; font-size:13px; padding:8px; min-height:36px;"
+                  onclick="addSteps(500)">+ 500</button>
+                <button class="section-save-btn"
+                  style="flex:1; background:var(--purple); border-radius:8px; font-size:13px; padding:8px; min-height:36px;"
+                  onclick="addSteps(1000)">+ 1000</button>
+              </div>
+            </div>
+            <div class="summary-card" style="border-color: rgba(0, 212, 170, 0.4);">
+              <div class="card-icon">🍏</div>
+              <div class="card-label">Kalori Durumu (Alınan / Hedef)
+                <span class="target-controls"><button onclick="adjTarget('cal', -100)">-</button><button
+                    onclick="adjTarget('cal', 100)">+</button></span>
+              </div>
+              <div class="card-value" id="card-cal-value">— / —</div>
+              <div class="card-status neutral" id="card-cal-label">Kilo bilgisini girin</div>
+            </div>
+            <div class="summary-card" style="border-color: rgba(64, 169, 255, 0.4);">
+              <div class="progress-ring" id="ring-water" style="--progress: 0%">
+                <div class="progress-ring-icon">💧</div>
+              </div>
+              <div class="card-label">Günlük Su (Hedef: <span id="target-water-lbl">2500</span>ml)
+                <span class="target-controls"><button onclick="adjTarget('water', -100)">-</button><button
+                    onclick="adjTarget('water', 100)">+</button></span>
+              </div>
+              <div class="card-value" id="card-water-value">0 ml</div>
+              <button class="section-save-btn"
+                style="background:var(--blue); margin-top:12px; width:100%; border-radius:8px; font-size:14px; padding:10px;"
+                onclick="addWater(200)">+ 200ml İçtim</button>
+            </div>
+            <div class="summary-card" style="border-color: rgba(255, 77, 109, 0.4);">
+              <div class="card-icon">🩸</div>
+              <div class="card-label">Güncel Kan Şekeri</div>
+              <div class="card-value" id="card-sugar-value">—</div>
+              <div class="card-status neutral" id="card-sugar-label">—</div>
+            </div>
+          </div>
+          <div id="no-data-msg">
+            <div class="no-data-icon">🌱</div>
+            <h3>Sağlık yolculuğuna başla</h3>
+            <p>İlk ölçümlerini girerek kişiselleştirilmiş sağlık takibine başlayabilirsin.</p>
+            <button class="no-data-cta" onclick="navigateTo('entry')">İlk Veriyi Gir →</button>
+          </div>
+          <div id="charts-section" style="display:none;">
+            <div class="chart-filters" style="grid-column:1/-1;">
+              <button class="chart-filter-btn active" data-range="7">Son 1 Hafta</button>
+              <button class="chart-filter-btn" data-range="30">Son 1 Ay</button>
+              <button class="chart-filter-btn" data-range="90">Son 3 Ay</button>
+              <button class="chart-filter-btn" data-range="365">Son 1 Yıl</button>
+              <button class="chart-filter-btn" data-range="0">Tümü</button>
+            </div>
+            <div class="chart-card">
+              <h3>⚖️ Kilo Trendi</h3>
+              <div class="chart-wrap"><canvas id="weightChart"></canvas></div>
+            </div>
+            <div class="chart-card">
+              <h3>🔢 VKİ Trendi</h3>
+              <div class="chart-wrap"><canvas id="bmiChart"></canvas></div>
+            </div>
+            <div class="chart-card">
+              <h3>🩺 Tansiyon</h3>
+              <div class="chart-wrap"><canvas id="bpChart"></canvas></div>
+            </div>
+            <div class="chart-card">
+              <h3>💓 Nabız</h3>
+              <div class="chart-wrap"><canvas id="pulseChart"></canvas></div>
+            </div>
+            <div class="chart-card" style="grid-column:1/-1;">
+              <h3>👟 Günlük Adım</h3>
+              <div class="chart-wrap"><canvas id="stepsChart"></canvas></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ENTRY DRAWER -->
+      <aside id="drawer-entry" class="right-drawer">
+        <div class="drawer-header">
+          <h2>➕ Hızlı Veri Ekle</h2>
+          <button class="drawer-close" id="drawer-close-btn">&times;</button>
+        </div>
+        <div class="drawer-body">
+          <div class="form-container">
+
+            <!-- Shared date bar -->
+            <div class="date-bar">
+              <label for="shared-date">📅 Tarih</label>
+              <div class="input-wrap">
+                <span class="input-icon">📅</span>
+                <input type="date" id="shared-date" />
+              </div>
+            </div>
+
+            <!-- Category 1: Vücut Ölçüleri -->
+            <div class="form-section">
+              <div class="form-section-title">📏 Vücut Ölçüleri</div>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label for="entry-height">Boy</label>
+                  <div class="input-wrap"><span class="input-icon">📏</span>
+                    <input type="number" id="entry-height" placeholder="175" min="100" max="250" step="0.1" />
+                    <span class="input-suffix">cm</span>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label for="entry-weight">Kilo</label>
+                  <div class="input-wrap"><span class="input-icon">⚖️</span>
+                    <input type="number" id="entry-weight" placeholder="70" min="20" max="300" step="0.1" />
+                    <span class="input-suffix">kg</span>
+                  </div>
+                </div>
+              </div>
+              <div id="bmi-preview"></div>
+              <div class="section-footer">
+                <span style="font-size:12px;color:var(--text3);">Boy veya kilo girilmeli</span>
+                <button type="button" class="section-save-btn" onclick="saveBody()">💾 Vücut Kaydet</button>
+              </div>
+            </div>
+
+            <!-- Category 2: Kalp & Dolaşım -->
+            <div class="form-section">
+              <div class="form-section-title">🫀 Kalp &amp; Dolaşım</div>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label>Tansiyon (Sistolik / Diyastolik)</label>
+                  <div class="bp-row">
+                    <div class="input-wrap"><span class="input-icon">🩺</span>
+                      <input type="number" id="entry-systolic" autocomplete="off" placeholder="120" min="60"
+                        max="250" />
+                      <span class="input-suffix">mmHg</span>
+                    </div>
+                    <span class="bp-sep">/</span>
+                    <div class="input-wrap"><span class="input-icon">🩺</span>
+                      <input type="number" id="entry-diastolic" autocomplete="off" placeholder="80" min="40"
+                        max="160" />
+                      <span class="input-suffix">mmHg</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label for="entry-pulse">Nabız</label>
+                  <div class="input-wrap"><span class="input-icon">💓</span>
+                    <input type="number" id="entry-pulse" placeholder="72" min="30" max="220" />
+                    <span class="input-suffix">bpm</span>
+                  </div>
+                </div>
+              </div>
+              <div class="section-footer">
+                <span style="font-size:12px;color:var(--text3);">Tansiyon veya nabız girilmeli</span>
+                <button type="button" class="section-save-btn" onclick="saveHeart()">💾 Kalp Kaydet</button>
+              </div>
+            </div>
+
+            <!-- Category 3: Aktivite -->
+            <div class="form-section">
+              <div class="form-section-title">🏃 Aktivite</div>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label for="entry-steps">Günlük Adım</label>
+                  <div class="input-wrap"><span class="input-icon">👟</span>
+                    <input type="number" id="entry-steps" placeholder="8000" min="0" max="99999" step="100" />
+                    <span class="input-suffix">adım</span>
+                  </div>
+                </div>
+                <div class="form-group"><!-- spacer --></div>
+                <div class="form-group full">
+                  <label for="entry-notes">Notlar</label>
+                  <textarea id="entry-notes" placeholder="Bugün nasıl hissettiniz?"></textarea>
+                </div>
+              </div>
+              <div class="section-footer">
+                <span style="font-size:12px;color:var(--text3);">Adım sayısı girilmeli</span>
+                <button type="button" class="section-save-btn" onclick="saveActivity()">💾 Aktivite Kaydet</button>
+              </div>
+            </div>
+
+            <!-- Nutrition Section -->
+            <div class="form-section" style="border-color: rgba(0,212,170,0.3)">
+              <div class="form-section-title" style="color:var(--teal)">🍏 Beslenme (Kalori)</div>
+              <div style="flex:1;">
+                <input type="text" id="food-search" class="input-field" placeholder="Yemek ara (Örn: Çorba)..."
+                  onkeyup="filterFoods()">
+              </div>
+              <button onclick="openFoodModal()" class="section-save-btn"
+                style="width:auto; padding: 0 15px; margin-bottom: 20px; border-radius: 12px; font-weight:600; white-space:nowrap; background:var(--surface2); color:var(--primary);">
+                Listede Yok mu? Ekle
+              </button>
+              <div id="food-results"
+                style="display:none; max-height:200px; overflow-y:auto; border:1px solid var(--border); border-radius:12px; margin-bottom:10px;">
+              </div>
+              <div id="custom-foods-list-preview" style="font-size:12px; color:var(--text-muted); margin-bottom:20px;">
+                <!-- Filled by JS -->
+              </div>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label for="entry-food-cal">Kalori (kcal)</label>
+                  <div class="input-wrap"><span class="input-icon">🔥</span>
+                    <input type="number" id="entry-food-cal" placeholder="Kalori değeri" min="1" max="5000" />
+                    <span class="input-suffix">kcal</span>
+                  </div>
+                </div>
+              </div>
+              <div class="section-footer">
+                <span style="font-size:12px;color:var(--text3);">Yemek adı ve kalori girilmeli</span>
+                <button type="button" class="section-save-btn"
+                  style="background:linear-gradient(135deg, var(--teal), #00b386)" onclick="saveFood()">💾 Yemeği
+                  Ekle</button>
+              </div>
+            </div>
+
+            <!-- Category: Blood Sugar -->
+            <div class="form-section">
+              <div class="form-section-title" style="color:#ff4d6d">🩸 Kan Şekeri</div>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label for="entry-sugar">Değer</label>
+                  <div class="input-wrap"><span class="input-icon">📏</span>
+                    <input type="number" id="entry-sugar" placeholder="90" min="20" max="600" />
+                    <span class="input-suffix">mg/dL</span>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label for="entry-sugar-type">Ölçüm Zamanı</label>
+                  <select id="entry-sugar-type"
+                    style="background:var(--input-bg); border:1px solid var(--border); color:var(--text); border-radius:10px; padding:12px; font-size:15px; width:100%; outline:none; -webkit-appearance:none; appearance:none;">
+                    <option value="Açlık">Açlık (Yemekten Önce)</option>
+                    <option value="Tokluk">Tokluk (Yemekten 2 Saat Sonra)</option>
+                  </select>
+                </div>
+              </div>
+              <div class="section-footer">
+                <span style="font-size:12px;color:var(--text3);">Değer girilmeli</span>
+                <button type="button" class="section-save-btn"
+                  style="background:linear-gradient(135deg, #ff4d6d, #d90429)" onclick="saveSugar()">💾 Şeker
+                  Kaydet</button>
+              </div>
+            </div>
+
+            <!-- Medication Section -->
+            <div class="form-section" style="border-color: rgba(255,100,100,0.3)">
+              <div class="form-section-title" style="color:var(--danger)">💊 İlaç Takibi</div>
+              <div class="form-grid">
+                <div class="form-group full">
+                  <label for="entry-med-select">İlaç Seçin</label>
+                  <select id="entry-med-select"
+                    style="background:var(--input-bg); border:1px solid var(--border); color:var(--text); border-radius:10px; padding:12px; font-size:15px; width:100%; outline:none; -webkit-appearance:none; appearance:none;"></select>
+                </div>
+                <div class="form-group full" style="display:flex; gap:10px; align-items:center;">
+                  <input type="text" id="entry-new-med" placeholder="Yeni ilaç ekle..."
+                    style="flex:1; background:var(--input-bg); border:1px solid var(--border); color:var(--text); border-radius:10px; padding:10px; font-size:14px; outline:none;" />
+                  <button type="button" onclick="addCustomMed()"
+                    style="background:var(--surface3); color:var(--text); border:none; padding:10px 16px; border-radius:8px; cursor:pointer; font-weight:600;">Listeye
+                    Ekle</button>
+                  <button type="button" onclick="openMedsModal()"
+                    style="background:transparent; border:1px solid var(--border); color:var(--text3); padding:10px 14px; border-radius:8px; cursor:pointer; font-size:12px;">⚙️
+                    Listeyi Düzenle</button>
+                </div>
+              </div>
+              <div class="section-footer">
+                <span style="font-size:12px;color:var(--text3);">Zaman damgalı kaydedilir</span>
+                <button type="button" class="section-save-btn"
+                  style="background:linear-gradient(135deg, var(--danger), #ff4d4d)" onclick="saveMedication()">💾 İlacı
+                  İçtim</button>
+              </div>
+            </div>
+
+            <div id="entry-result"></div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- HISTORY -->
+      <section id="view-history" class="view">
+        <header class="content-header">
+          <button class="hamburger" id="hamburger3">☰</button>
+          <h2>📋 Geçmiş Kayıtlar</h2>
+        </header>
+        <div class="content-body">
+          <div class="history-toolbar">
+            <div class="filter-group">
+              <label>Kategori</label>
+              <select id="history-category">
+                <option value="all">Tümü</option>
+                <option value="body">⚖️ Kilo & VKİ</option>
+                <option value="heart">🩺 Tansiyon & Nabız</option>
+                <option value="steps">👟 Adım</option>
+                <option value="food">🍏 Beslenme</option>
+                <option value="water">💧 Su</option>
+                <option value="meds">💊 İlaç</option>
+                <option value="sugar">🩸 Kan Şekeri</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label>Başlangıç</label>
+              <input type="date" id="history-date-from" />
+            </div>
+            <div class="filter-group">
+              <label>Bitiş</label>
+              <input type="date" id="history-date-to" />
+            </div>
+          </div>
+          <div id="history-stats"></div>
+          <div id="history-list">
+            <p class="empty-msg">Yükleniyor…</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- RECOMMENDATIONS -->
+      <section id="view-recommendations" class="view">
+        <header class="content-header">
+          <button class="hamburger" id="hamburger4">☰</button>
+          <h2>💡 Sağlık Önerileri</h2>
+        </header>
+        <div class="content-body">
+          <div id="recommendations-list">
+            <p class="empty-msg">Yükleniyor…</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- LABS (Tahlillerim) -->
+      <section id="view-labs" class="view">
+        <header class="content-header">
+          <h2>🔬 Tahlillerim</h2>
+        </header>
+        <div class="content-body">
+
+          <!-- Upload Form -->
+          <div class="form-container">
+            <div class="section-card">
+              <h3>📄 Yeni Tahlil Yükle</h3>
+              <p style="font-size:12px;color:var(--text3);margin-bottom:12px;">PDF yüklediğinizde değerler otomatik
+                çıkarılır. Düzenleyip kaydedebilirsiniz.</p>
+              <div class="input-group" style="margin-bottom:12px;">
+                <label for="lab-pdf-file">PDF Dosyası</label>
+                <input type="file" id="lab-pdf-file" accept=".pdf"
+                  style="padding:8px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);" />
+              </div>
+              <div class="input-group" style="margin-bottom:12px;">
+                <label for="lab-report-date">Tahlil Tarihi</label>
+                <input type="date" id="lab-report-date" />
+              </div>
+              <div id="lab-parsing-status"
+                style="display:none;padding:10px;border-radius:8px;margin-bottom:12px;background:var(--surface2);text-align:center;">
+              </div>
+
+              <!-- Kritik Değerler Grid -->
+              <div
+                style="display:grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap:10px; margin-bottom:16px;">
+                <div class="input-group"><label>Açlık Şekeri (mg/dL)</label><input type="number" step="0.1"
+                    id="lab-glucose" placeholder="—" /></div>
+                <div class="input-group"><label>HbA1c (%)</label><input type="number" step="0.1" id="lab-hba1c"
+                    placeholder="—" /></div>
+                <div class="input-group"><label>Toplam Kolesterol</label><input type="number" step="0.1"
+                    id="lab-cholesterol_total" placeholder="—" /></div>
+                <div class="input-group"><label>LDL Kolesterol</label><input type="number" step="0.1" id="lab-ldl"
+                    placeholder="—" /></div>
+                <div class="input-group"><label>HDL Kolesterol</label><input type="number" step="0.1" id="lab-hdl"
+                    placeholder="—" /></div>
+                <div class="input-group"><label>Trigliserit</label><input type="number" step="0.1" id="lab-triglyceride"
+                    placeholder="—" /></div>
+                <div class="input-group"><label>Demir (µg/dL)</label><input type="number" step="0.1" id="lab-iron"
+                    placeholder="—" /></div>
+                <div class="input-group"><label>Ferritin</label><input type="number" step="0.1" id="lab-ferritin"
+                    placeholder="—" /></div>
+                <div class="input-group"><label>B12 Vitamini</label><input type="number" step="0.1" id="lab-b12"
+                    placeholder="—" /></div>
+                <div class="input-group"><label>D Vitamini</label><input type="number" step="0.1" id="lab-vitamin_d"
+                    placeholder="—" /></div>
+                <div class="input-group"><label>TSH</label><input type="number" step="0.01" id="lab-tsh"
+                    placeholder="—" /></div>
+                <div class="input-group"><label>Hemoglobin (g/dL)</label><input type="number" step="0.1"
+                    id="lab-hemoglobin" placeholder="—" /></div>
+                <div class="input-group"><label>Kreatinin</label><input type="number" step="0.01" id="lab-creatinine"
+                    placeholder="—" /></div>
+                <div class="input-group"><label>ALT (SGPT)</label><input type="number" step="0.1" id="lab-alt_sgpt"
+                    placeholder="—" /></div>
+                <div class="input-group"><label>AST (SGOT)</label><input type="number" step="0.1" id="lab-ast_sgot"
+                    placeholder="—" /></div>
+              </div>
+              <div class="input-group" style="margin-bottom:12px;">
+                <label for="lab-notes">Notlar</label>
+                <textarea id="lab-notes" rows="2" placeholder="Opsiyonel not…"
+                  style="width:100%;padding:8px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);resize:vertical;"></textarea>
+              </div>
+              <button class="section-save-btn"
+                style="width:100%;background:linear-gradient(135deg, var(--teal), var(--blue));"
+                onclick="saveLabReport()">💾 Tahlili Kaydet</button>
+            </div>
+          </div>
+
+          <!-- Trend Chart -->
+          <div class="section-card" style="margin-top:20px;">
+            <h3>📈 Tahlil Trendleri</h3>
+            <div class="input-group" style="margin-bottom:10px;">
+              <select id="lab-trend-metric"
+                style="padding:8px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);"
+                onchange="renderLabTrend()">
+                <option value="glucose">Açlık Şekeri</option>
+                <option value="cholesterol_total">Toplam Kolesterol</option>
+                <option value="ldl">LDL Kolesterol</option>
+                <option value="hdl">HDL Kolesterol</option>
+                <option value="triglyceride">Trigliserit</option>
+                <option value="hba1c">HbA1c</option>
+                <option value="iron">Demir</option>
+                <option value="ferritin">Ferritin</option>
+                <option value="b12">B12 Vitamini</option>
+                <option value="vitamin_d">D Vitamini</option>
+                <option value="tsh">TSH</option>
+                <option value="hemoglobin">Hemoglobin</option>
+              </select>
+            </div>
+            <div style="position:relative;height:250px;"><canvas id="lab-trend-chart"></canvas></div>
+          </div>
+
+          <!-- Report History -->
+          <div class="section-card" style="margin-top:20px;">
+            <h3>📋 Geçmiş Tahliller</h3>
+            <div id="lab-reports-list">
+              <p class="empty-msg">Yükleniyor…</p>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <!-- Custom Delete Confirmation Modal -->
+  <div class="modal-overlay" id="delete-modal">
+    <div class="modal-box">
+      <div class="modal-icon">🗑️</div>
+      <div class="modal-title">Kaydı sil</div>
+      <div class="modal-desc">Bu sağlık kaydını kalıcı olarak silmek istediğinize emin misiniz?</div>
+      <div class="modal-actions">
+        <button class="btn-secondary" onclick="closeDeleteModal()">İptal</button>
+        <button class="btn-danger" id="modal-confirm-btn">Evet, Sil</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Custom Food Modal -->
+  <div class="modal-overlay" id="add-food-modal">
+    <div class="modal-content" style="max-width:350px; background:var(--surface); padding:20px; border-radius:16px;">
+      <div class="modal-header">
+        <div class="modal-title">Yeni Yemek Ekle</div>
+        <button class="modal-close" onclick="closeFoodModal()">✖</button>
+      </div>
+      <div class="modal-body" style="padding: 20px;">
+        <div class="input-group">
+          <label>Yemek Adı</label>
+          <input type="text" id="custom-food-name" class="input-field" placeholder="Örn: Ev Yapımı Limonata">
+        </div>
+        <div class="input-group">
+          <label>Kalori (1 Porsiyon)</label>
+          <input type="number" id="custom-food-cal" class="input-field" placeholder="Örn: 120">
+        </div>
+      </div>
+      <div class="modal-footer" style="padding:20px; text-align:right;">
+        <button class="section-save-btn"
+          style="background:var(--surface2); color:white; width:auto; padding:8px 16px; margin-right:10px;"
+          onclick="closeFoodModal()">İptal</button>
+        <button class="section-save-btn" style="width:auto; padding:8px 16px;"
+          onclick="saveCustomFood()">Kaydet</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Profile Modal -->
+  <div class="modal-overlay" id="profile-modal">
+    <div class="modal-content" style="max-width:400px; background:var(--surface); padding:20px; border-radius:16px;">
+      <div class="modal-header">
+        <div class="modal-title">İkizini Özelleştir ✨</div>
+        <button class="modal-close" onclick="closeProfileModal()">✖</button>
+      </div>
+      <div class="modal-body" style="padding: 20px;">
+        <div class="input-group">
+          <label>Karakterini Seç (20+ Model) 🎨</label>
+          <div
+            style="display:grid; grid-template-columns: repeat(4, 1fr); gap:10px; margin-top:10px; max-height:350px; overflow-y:auto; padding:8px; background:rgba(0,0,0,0.2); border-radius:12px;">
+            <button onclick="setAvatar('m1')" class="avatar-select-btn" id="btn-m1">👨</button>
+            <button onclick="setAvatar('f1')" class="avatar-select-btn" id="btn-f1">👩</button>
+            <button onclick="setAvatar('pro1')" class="avatar-select-btn" id="btn-pro1">🧔</button>
+            <button onclick="setAvatar('pro2')" class="avatar-select-btn" id="btn-pro2">🕶️</button>
+            <button onclick="setAvatar('pro-f1')" class="avatar-select-btn" id="btn-pro-f1">🕶️</button>
+            <button onclick="setAvatar('blonde-m')" class="avatar-select-btn" id="btn-blonde-m">👱‍♂️</button>
+            <button onclick="setAvatar('blonde-f')" class="avatar-select-btn" id="btn-blonde-f">👱‍♀️</button>
+            <button onclick="setAvatar('ginger-m')" class="avatar-select-btn" id="btn-ginger-m">🧑‍🦰</button>
+            <button onclick="setAvatar('ginger-f')" class="avatar-select-btn" id="btn-ginger-f">👩‍🦰</button>
+            <button onclick="setAvatar('grey-m')" class="avatar-select-btn" id="btn-grey-m">👴</button>
+            <button onclick="setAvatar('grey-f')" class="avatar-select-btn" id="btn-grey-f">👵</button>
+            <button onclick="setAvatar('boy')" class="avatar-select-btn" id="btn-boy">👦</button>
+            <button onclick="setAvatar('girl')" class="avatar-select-btn" id="btn-girl">👧</button>
+            <button onclick="setAvatar('hijab')" class="avatar-select-btn" id="btn-hijab">🧕</button>
+            <button onclick="setAvatar('hat-m')" class="avatar-select-btn" id="btn-hat-m">🧢</button>
+            <button onclick="setAvatar('hat-f')" class="avatar-select-btn" id="btn-hat-f">👒</button>
+            <button onclick="setAvatar('curly-f')" class="avatar-select-btn" id="btn-curly-f">👩‍🦱</button>
+            <button onclick="setAvatar('beard2')" class="avatar-select-btn" id="btn-beard2">🧔‍♂️</button>
+            <button onclick="setAvatar('glasses1')" class="avatar-select-btn" id="btn-glasses1">🤓</button>
+            <button onclick="setAvatar('cool1')" class="avatar-select-btn" id="btn-cool1">👔</button>
+          </div>
+          <input type="hidden" id="profile-avatar-id" value="m1">
+          <style>
+            .avatar-select-btn {
+              background: var(--surface2);
+              border: 1px solid var(--border);
+              color: var(--text2);
+              padding: 12px;
+              border-radius: 12px;
+              cursor: pointer;
+              font-size: 24px;
+              transition: all 0.2s;
+            }
+
+            .avatar-select-btn.active {
+              border-color: var(--purple);
+              background: rgba(108, 99, 255, 0.1);
+              color: var(--purple);
+              transform: scale(1.05);
+            }
+          </style>
+        </div>
+      </div>
+      <div class="modal-footer" style="padding:20px; text-align:right;">
+        <button class="section-save-btn" style="width:100%;" onclick="saveProfile()">💾 Değişiklikleri Kaydet</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="manage-meds-modal">
+    <div class="modal-content" style="max-width: 400px; background:var(--surface); padding:20px; border-radius:16px;">
+      <div class="modal-header">
+        <div class="modal-title">İlaçları Yönet ⚙️</div>
+        <button class="modal-close" onclick="closeMedsModal()">✖</button>
+      </div>
+      <div class="modal-body" style="padding: 20px; max-height: 60vh; overflow-y: auto;">
+        <ul id="manage-meds-list" style="list-style:none; padding:0; margin:0;">
+          <!-- Dynamically filled -->
+        </ul>
+      </div>
+      <div class="modal-footer" style="padding:20px; text-align:right;">
+        <button class="section-save-btn" style="width:100%;" onclick="closeMedsModal()">Kapat</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ═══════════════════════════════════════════════════════════════
+    // Food Database
+    // ═══════════════════════════════════════════════════════════════
+    const foodDB = [
+      { n: "Mercimek Çorbası (1 Kase)", c: 137 },
+      { n: "Ezogelin Çorbası (1 Kase)", c: 160 },
+      { n: "Tavuk Suyu Çorba (1 Kase)", c: 140 },
+      { n: "Yayla Çorbası (1 Kase)", c: 150 },
+      { n: "Tarhana Çorbası (1 Kase)", c: 150 },
+      { n: "Kelle Paça Çorbası (1 Kase)", c: 320 },
+      { n: "İşkembe Çorbası (1 Kase)", c: 250 },
+      { n: "Domates Çorbası (1 Kase)", c: 120 },
+      { n: "Mantar Çorbası (Kremalı - 1 Kase)", c: 180 },
+      { n: "İskender Kebap (1 Porsiyon)", c: 750 },
+      { n: "Adana Kebap (1 Porsiyon)", c: 360 },
+      { n: "Urfa Kebap (1 Porsiyon)", c: 350 },
+      { n: "Et Döner (1 Porsiyon)", c: 420 },
+      { n: "Tavuk Döner (1 Porsiyon)", c: 330 },
+      { n: "İnegöl Köfte (1 Porsiyon)", c: 350 },
+      { n: "Izgara Köfte (1 Porsiyon)", c: 320 },
+      { n: "İzmir Köfte (1 Porsiyon)", c: 380 },
+      { n: "Karnıyarık (1 Porsiyon)", c: 270 },
+      { n: "Ali Nazik (1 Porsiyon)", c: 400 },
+      { n: "Hünkar Beğendi (1 Porsiyon)", c: 450 },
+      { n: "Et Sote (1 Porsiyon)", c: 250 },
+      { n: "Tavuk Sote (1 Porsiyon)", c: 200 },
+      { n: "Fırında Tavuk (1 Porsiyon)", c: 250 },
+      { n: "Izgara Tavuk Göğsü (1 Porsiyon)", c: 165 },
+      { n: "Tas Kebabı (1 Porsiyon)", c: 350 },
+      { n: "Orman Kebabı (1 Porsiyon)", c: 320 },
+      { n: "Çoban Kavurma (1 Porsiyon)", c: 400 },
+      { n: "Mantı (1 Porsiyon)", c: 450 },
+      { n: "İçli Köfte (Haşlama - 1 Adet)", c: 150 },
+      { n: "İçli Köfte (Kızartma - 1 Adet)", c: 250 },
+      { n: "Kuru Fasulye (Etli - 1 Porsiyon)", c: 380 },
+      { n: "Kuru Fasulye (Etsiz - 1 Porsiyon)", c: 300 },
+      { n: "Nohut Yemeği (Etli - 1 Porsiyon)", c: 350 },
+      { n: "Taze Fasulye (Zeytinyağlı - 1 Porsiyon)", c: 130 },
+      { n: "Zeytinyağlı Yaprak Sarma (5 Adet)", c: 175 },
+      { n: "Etli Yaprak Sarma (5 Adet)", c: 220 },
+      { n: "Biber Dolması (Etli - 1 Adet)", c: 150 },
+      { n: "Biber Dolması (Zeytinyağlı - 1 Adet)", c: 120 },
+      { n: "Zeytinyağlı Barbunya (1 Porsiyon)", c: 280 },
+      { n: "Enginar (Zeytinyağlı - 1 Adet)", c: 100 },
+      { n: "Ispanak Yemeği (1 Porsiyon)", c: 150 },
+      { n: "Kapuska (1 Porsiyon)", c: 120 },
+      { n: "Türlü (Etli - 1 Porsiyon)", c: 250 },
+      { n: "Pirinç Pilavı (1 Porsiyon)", c: 320 },
+      { n: "Bulgur Pilavı (1 Porsiyon)", c: 290 },
+      { n: "Şehriyeli Tel Pilav (1 Porsiyon)", c: 300 },
+      { n: "Perde Pilavı (1 Porsiyon)", c: 450 },
+      { n: "Salçalı Makarna (1 Porsiyon)", c: 310 },
+      { n: "Yoğurtlu Makarna (1 Porsiyon)", c: 350 },
+      { n: "Çoban Salata (1 Porsiyon)", c: 80 },
+      { n: "Mevsim Salata (1 Porsiyon)", c: 60 },
+      { n: "Sezar Salata (Tavuklu - 1 Porsiyon)", c: 350 },
+      { n: "Gavurdağı Salatası (1 Porsiyon)", c: 150 },
+      { n: "Cacık (1 Kase)", c: 100 },
+      { n: "Haydari (1 Porsiyon)", c: 130 },
+      { n: "Humus (1 Porsiyon)", c: 200 },
+      { n: "Şakşuka (1 Porsiyon)", c: 220 },
+      { n: "Rus Salatası (1 Porsiyon)", c: 300 },
+      { n: "Lahmacun (1 Adet)", c: 220 },
+      { n: "Kıymalı Pide (1 Porsiyon)", c: 540 },
+      { n: "Kaşarlı Pide (1 Porsiyon)", c: 500 },
+      { n: "Kuşbaşılı Pide (1 Porsiyon)", c: 580 },
+      { n: "Etli Ekmek (1 Porsiyon)", c: 500 },
+      { n: "Su Böreği (1 Dilim)", c: 250 },
+      { n: "Kol Böreği (Kıymalı - 1 Porsiyon)", c: 350 },
+      { n: "Sigara Böreği (1 Adet)", c: 80 },
+      { n: "Simit (1 Adet)", c: 250 },
+      { n: "Poğaça (Peynirli - 1 Adet)", c: 250 },
+      { n: "Açma (1 Adet)", c: 300 },
+      { n: "Gözleme (Peynirli - 1 Porsiyon)", c: 400 },
+      { n: "Beyaz Peynir (1 İnce Dilim / 30g)", c: 90 },
+      { n: "Kaşar Peyniri (1 İnce Dilim / 30g)", c: 120 },
+      { n: "Tulum Peyniri (1 İnce Dilim / 30g)", c: 100 },
+      { n: "Çökelek / Lor (1 Yemek Kaşığı)", c: 20 },
+      { n: "Siyah Zeytin (5 Adet)", c: 45 },
+      { n: "Yeşil Zeytin (5 Adet)", c: 35 },
+      { n: "Haşlanmış Yumurta (1 Adet)", c: 75 },
+      { n: "Sahanda Yumurta (1 Adet)", c: 120 },
+      { n: "Menemen (1 Porsiyon)", c: 200 },
+      { n: "Sucuklu Yumurta (1 Porsiyon)", c: 300 },
+      { n: "Bal (1 Tatlı Kaşığı)", c: 30 },
+      { n: "Reçel (1 Tatlı Kaşığı)", c: 30 },
+      { n: "Tereyağı (1 Tatlı Kaşığı)", c: 35 },
+      { n: "Domates (1 Orta Boy)", c: 20 },
+      { n: "Salatalık (1 Orta Boy)", c: 15 },
+      { n: "Tam Buğday Ekmek (1 Dilim)", c: 65 },
+      { n: "Beyaz Ekmek (1 Dilim)", c: 80 },
+      { n: "Fıstıklı Baklava (1 Dilim)", c: 250 },
+      { n: "Cevizli Baklava (1 Dilim)", c: 230 },
+      { n: "Sütlaç (1 Kase)", c: 260 },
+      { n: "Fırın Sütlaç (1 Kase)", c: 280 },
+      { n: "Kazandibi (1 Porsiyon)", c: 200 },
+      { n: "Tavukgöğsü (1 Porsiyon)", c: 170 },
+      { n: "Profiterol (1 Porsiyon)", c: 400 },
+      { n: "Trileçe (1 Porsiyon)", c: 300 },
+      { n: "Aşure (1 Kase)", c: 350 },
+      { n: "Güllaç (1 Dilim)", c: 250 },
+      { n: "Künefe (1 Porsiyon)", c: 450 },
+      { n: "Revani (1 Dilim)", c: 350 },
+      { n: "Kemalpaşa Tatlısı (1 Porsiyon)", c: 400 },
+      { n: "İrmik Helvası (1 Porsiyon)", c: 300 },
+      { n: "Dondurma (Sade - 1 Top)", c: 100 },
+      { n: "Çikolatalı Puding (1 Kase)", c: 220 },
+      { n: "Elma (1 Adet)", c: 50 },
+      { n: "Muz (1 Adet)", c: 105 },
+      { n: "Portakal (1 Adet)", c: 60 },
+      { n: "Mandalina (1 Adet)", c: 50 },
+      { n: "Karpuz (1 İnce Dilim)", c: 45 },
+      { n: "Kavun (1 İnce Dilim)", c: 50 },
+      { n: "Üzüm (1 Salkım / 100g)", c: 70 },
+      { n: "Çilek (1 Kase)", c: 50 },
+      { n: "Kiraz (1 Kase)", c: 60 },
+      { n: "Ceviz (3 Tam Ceviz)", c: 100 },
+      { n: "Fındık / Badem (1 Avuç / 25g)", c: 150 },
+      { n: "Kabak Çekirdeği (1 Avuç)", c: 130 },
+      { n: "Ayçekirdeği (1 Avuç)", c: 140 },
+      { n: "Patlamış Mısır (Yağsız - 1 Kutu)", c: 100 },
+      { n: "Patates Cipsi (1 Küçük Paket)", c: 250 },
+      { n: "Kurabiye (1 Adet)", c: 80 },
+      { n: "Kek (1 İnce Dilim)", c: 150 },
+      { n: "Bisküvi (Yulaflı - 1 Paket)", c: 400 },
+      { n: "Ayran (1 Su Bardağı)", c: 75 },
+      { n: "Kefir (1 Su Bardağı)", c: 100 },
+      { n: "İnek Sütü (Tam Yağlı - 1 Bardak)", c: 120 },
+      { n: "İnek Sütü (Yarım Yağlı - 1 Bardak)", c: 90 },
+      { n: "Yoğurt (Tam Yağlı - 1 Kase)", c: 120 },
+      { n: "Kola (1 Kutu)", c: 140 },
+      { n: "Meyve Suyu (Hazır - 1 Kutu)", c: 150 },
+      { n: "Portakal Suyu (Taze Sıkım - 1 Bardak)", c: 110 },
+      { n: "Limonata (1 Bardak)", c: 100 },
+      { n: "Çay (Şekersiz)", c: 0 },
+      { n: "Türk Kahvesi (Şekersiz)", c: 5 },
+      { n: "Filtre Kahve (Sütsüz / Şekersiz)", c: 5 },
+      { n: "Soda / Maden Suyu (Sade)", c: 0 }
+    ];
+
+    async function apiFetch(url, options = {}) {
+      const token = localStorage.getItem('myAuthToken');
+      const headers = { ...options.headers };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+      const config = { ...options, headers, cache: 'no-store' };
+      return fetch(url, config);
+    }
+
+    async function checkAuth() {
+      try {
+        const res = await apiFetch('api/auth.php?action=check');
+        const data = await res.json();
+        if (data.status === 'authenticated') {
+          allRecordsStale = true;
+          document.getElementById('user-display').innerText = "👤 " + data.username;
+          window.currentUserGender = data.gender || 'erkek';
+          window.currentUserAgeGroup = data.age_group || 'yetiskin';
+          window.currentUserAvatarId = data.avatar_id || 'm1';
+          document.getElementById('sidebar').style.display = 'flex';
+          navigateTo('dashboard');
+        } else {
+          document.getElementById('sidebar').style.display = 'none';
+          document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
+          document.getElementById('view-auth').classList.add('active');
+        }
+      } catch (e) { console.error("checkAuth error:", e); }
+    }
+
+    async function handleAuth(action) {
+      const u = document.getElementById('auth-user').value.trim();
+      const p = document.getElementById('auth-pass').value.trim();
+      if (!u || !p) { showToast('Lütfen alanları doldurun!', 'error'); return; }
+      try {
+        const gen = document.getElementById('auth-gender').value;
+        const ag = document.getElementById('auth-age').value;
+        const res = await apiFetch('api/auth.php?action=' + action, {
+          method: 'POST',
+          body: JSON.stringify({ username: u, password: p, gender: gen, age_group: ag })
+        });
+        const data = await res.json();
+        if (data.status === 'success') {
+          localStorage.setItem('myAuthToken', data.token);
+          window.currentUserGender = data.gender || gen;
+          window.currentUserAgeGroup = data.age_group || ag;
+          showToast(action === 'login' ? 'Giriş başarılı!' : 'Kayıt başarılı!', 'success');
+          document.getElementById('user-display').innerText = "👤 " + (data.username || u);
+          document.getElementById('sidebar').style.display = 'flex';
+          document.getElementById('view-auth').classList.remove('active');
+          document.getElementById('view-dashboard').classList.add('active');
+          navigateTo('dashboard');
+        } else {
+          showToast(data.message || 'Hata oluştu', 'error');
+        }
+      } catch (e) { showToast('Sunucu hatası', 'error'); }
+    }
+
+    function setAvatar(id) {
+      document.getElementById('profile-avatar-id').value = id;
+      document.querySelectorAll('.avatar-select-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('btn-' + id).classList.add('active');
+    }
+    async function logout() {
+      await apiFetch('api/auth.php?action=logout');
+      localStorage.removeItem('myAuthToken');
+      document.getElementById('auth-user').value = '';
+      document.getElementById('auth-pass').value = '';
+      checkAuth();
+    }
+
+    function openProfileModal() {
+      document.getElementById('profile-modal').classList.add('open');
+      setAvatar(window.currentUserAvatarId || 'm1');
+    }
+    function closeProfileModal() {
+      document.getElementById('profile-modal').classList.remove('open');
+    }
+    async function saveProfile() {
+      const gen = window.currentUserGender || 'erkek';
+      const age = window.currentUserAgeGroup || 'yetiskin';
+      const avId = document.getElementById('profile-avatar-id').value;
+      try {
+        const res = await apiFetch('api/auth.php?action=update_profile', {
+          method: 'POST',
+          body: JSON.stringify({ gender: gen, age_group: age, avatar_id: avId })
+        });
+        const data = await res.json();
+        if (data.status === 'success') {
+          window.currentUserAvatarId = avId;
+          allRecordsStale = true;
+          showToast('İkiziniz güncellendi! ✨', 'success');
+          closeProfileModal();
+          // Update visualization immediately
+          const rRes = await apiFetch('api/records.php?action=list');
+          const rData = await rRes.json();
+          if (rData.status === 'success') updateVirtualTwin(rData.data);
+        } else {
+          showToast(data.message || 'Hata oluştu', 'error');
+        }
+      } catch (e) { showToast('Sunucu hatası', 'error'); }
+    }
+
+    async function getAllRecords() {
+      try {
+        const res = await apiFetch('api/records.php?action=get_all');
+        const data = await res.json();
+        if (data.status === 'success') {
+          return data.data.sort((a, b) => new Date(a.date) - new Date(b.date));
+        }
+        if (data.message === 'Unauthorized') checkAuth();
+      } catch (e) { console.error("getAllRecords error:", e); }
+      return [];
+    }
+
+    async function upsertRecord(date, fields) {
+      try {
+        await apiFetch('api/records.php?action=upsert_daily', {
+          method: 'POST', body: JSON.stringify({ date, fields })
+        });
+      } catch (e) { console.error(e); }
+    }
+
+    let customFoodsDB = [];
+    async function loadCustomFoods() {
+      try {
+        const res = await apiFetch('api/foods.php?action=get');
+        const data = await res.json();
+        if (data.status === 'success') {
+          customFoodsDB = data.data;
+          console.log("Loaded custom foods:", customFoodsDB);
+          const previewEl = document.getElementById('custom-foods-list-preview');
+          if (previewEl) {
+            previewEl.innerHTML = customFoodsDB.length > 0
+              ? `Kendi ekledikleriniz (${customFoodsDB.length}): ` + customFoodsDB.map(f => f.name).join(', ')
+              : 'Henüz özel yemek eklemediniz.';
+          }
+        }
+      } catch (e) { console.error("loadCustomFoods error:", e); }
+    }
+
+    function openFoodModal() {
+      document.getElementById('custom-food-name').value = '';
+      document.getElementById('custom-food-cal').value = '';
+      document.getElementById('add-food-modal').classList.add('open');
+    }
+
+    function closeFoodModal() {
+      document.getElementById('add-food-modal').classList.remove('open');
+    }
+
+    async function saveCustomFood() {
+      const name = document.getElementById('custom-food-name').value.trim();
+      const calStr = document.getElementById('custom-food-cal').value.trim();
+      const cal = parseInt(calStr);
+      if (!name || isNaN(cal) || cal <= 0) {
+        showToast('Lütfen geçerli bir yemek adı ve kalori girin.', 'error');
+        return;
+      }
+      try {
+        const res = await apiFetch('api/foods.php?action=add', {
+          method: 'POST', body: JSON.stringify({ name, cal })
+        });
+        const data = await res.json();
+        if (data.status === 'success') {
+          showToast('✅ Yemek başarıyla eklendi!', 'success');
+          closeFoodModal();
+          await loadCustomFoods();
+          filterFoods();
+        } else {
+          showToast(data.message || 'Hata oluştu', 'error');
+          // Hata (zaten mevcut vs) olsa bile listeyi yenileyelim ki senkronize olsun
+          await loadCustomFoods();
+          filterFoods();
+        }
+      } catch (e) {
+        showToast('Sunucu hatası', 'error');
+      }
+    }
+
+    // ─── Per-category save helpers ───────────────────────────────────
+    function getSharedDate() {
+      return document.getElementById('shared-date').value;
+    }
+
+    function showEntryResult(html) {
+      const res = document.getElementById('entry-result');
+      res.style.display = 'block';
+      res.innerHTML = html;
+      setTimeout(() => { res.style.display = 'none'; }, 4000);
+    }
+
+    async function saveBody() {
+      const date = getSharedDate();
+      if (!date) {
+        allRecordsStale = true;
+        showToast('Lütfen tarih seçin!', 'error'); return;
+      }
+      const h = parseFloat(document.getElementById('entry-height').value);
+      const w = parseFloat(document.getElementById('entry-weight').value);
+      if (!h && !w) { showToast('Boy veya kilo girin!', 'error'); return; }
+      try {
+        const fields = {};
+        if (h) fields.height = h;
+        if (w) fields.weight = w;
+        await upsertRecord(date, fields);
+        showToast('✅ Vücut ölçüleri kaydedildi!', 'success');
+        const bmi = calcBMI(w || null, h || null);
+        const bmiC = classifyBMI(bmi);
+        if (bmi) showEntryResult(`<div class="result-box"><div class="result-item"><span class="result-label">VKİ</span><span class="result-value ${bmiC.cls}">${bmi}</span></div><div class="result-item"><span class="result-label">Durum</span><span class="result-value ${bmiC.cls}">${bmiC.label}</span></div></div>`);
+        document.getElementById('entry-height').value = '';
+        document.getElementById('entry-weight').value = '';
+        document.getElementById('bmi-preview').style.display = 'none';
+      } catch (e) { showToast('Hata oluştu!', 'error'); console.error(e); }
+    }
+
+    async function saveHeart() {
+      console.log("saveHeart triggered");
+      const sys = parseInt(document.getElementById('entry-systolic').value) || null;
+      const dia = parseInt(document.getElementById('entry-diastolic').value) || null;
+      const pulse = parseInt(document.getElementById('entry-pulse').value) || null;
+      if (!sys && !dia && !pulse) { showToast('Tansiyon veya nabız girin!', 'error'); return; }
+      try {
+        const fields = {};
+        if (sys) fields.systolic = sys;
+        if (dia) fields.diastolic = dia;
+        if (pulse) fields.pulse = pulse;
+        await upsertRecord(date, fields);
+        showToast('✅ Kalp & dolaşım kaydedildi!', 'success');
+        const bpC = classifyBP(sys, dia);
+        const puC = classifyPulse(pulse);
+        showEntryResult(`<div class="result-box">${sys ? `<div class="result-item"><span class="result-label">Tansiyon</span><span class="result-value ${bpC.cls}">${sys}/${dia}</span></div><div class="result-item"><span class="result-label">Durum</span><span class="result-value ${bpC.cls}">${bpC.label}</span></div>` : ''}${pulse ? `<div class="result-item"><span class="result-label">Nabız</span><span class="result-value ${puC.cls}">${pulse} bpm · ${puC.label}</span></div>` : ''}</div>`);
+        document.getElementById('entry-systolic').value = '';
+        document.getElementById('entry-diastolic').value = '';
+        document.getElementById('entry-pulse').value = '';
+      } catch (e) { showToast('Hata oluştu!', 'error'); console.error(e); }
+    }
+
+    async function saveActivity() {
+      const date = getSharedDate();
+      if (!date) {
+        allRecordsStale = true;
+        showToast('Lütfen tarih seçin!', 'error'); return;
+      }
+      const steps = parseInt(document.getElementById('entry-steps').value) || null;
+      const notes = document.getElementById('entry-notes').value.trim();
+      if (!steps && !notes) { showToast('Adım sayısı veya not girin!', 'error'); return; }
+      try {
+        const fields = {};
+        if (steps) fields.steps = steps;
+        if (notes) fields.notes = notes;
+        await upsertRecord(date, fields);
+        showToast('✅ Aktivite kaydedildi!', 'success');
+        const stC = classifySteps(steps);
+        if (steps) showEntryResult(`<div class="result-box"><div class="result-item"><span class="result-label">Günlük Adım</span><span class="result-value ${stC.cls}">${steps.toLocaleString('tr-TR')}</span></div><div class="result-item"><span class="result-label">Durum</span><span class="result-value ${stC.cls}">${stC.label}</span></div></div>`);
+        document.getElementById('entry-steps').value = '';
+        document.getElementById('entry-notes').value = '';
+      } catch (e) { showToast('Hata oluştu!', 'error'); console.error(e); }
+    }
+
+    async function saveSugar() {
+      const date = getSharedDate();
+      if (!date) {
+        allRecordsStale = true;
+        showToast('Lütfen tarih seçin!', 'error'); return;
+      }
+      const sug = parseInt(document.getElementById('entry-sugar').value);
+      const type = document.getElementById('entry-sugar-type').value;
+      if (!sug) { showToast('Kan şekeri değeri girin!', 'error'); return; }
+      const timeStr = new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+
+      try {
+        await apiFetch('api/records.php?action=add_sugar', {
+          method: 'POST', body: JSON.stringify({ date, val: sug, type, time: timeStr })
+        });
+        showToast('✅ Kan şekeri kaydedildi!', 'success');
+        const c = classifySugar(sug, type);
+        showEntryResult(`<div class="result-box"><div class="result-item"><span class="result-label">Kan Şekeri</span><span class="result-value ${c.cls}">${sug} mg/dL (${type} - ${timeStr})</span></div><div class="result-item"><span class="result-label">Durum</span><span class="result-value ${c.cls}">${c.label}</span></div></div>`);
+        document.getElementById('entry-sugar').value = '';
+      } catch (e) { showToast('Hata oluştu!', 'error'); }
+    }
+
+    function calcBMI(weight, height) {
+      if (!weight || !height) return null;
+      return parseFloat((weight / Math.pow(height / 100, 2)).toFixed(1));
+    }
+
+    function classifyBMI(bmi) {
+      if (bmi === null) return { label: '—', cls: 'neutral' };
+      if (bmi < 18.5) return { label: 'Zayıf', cls: 'warn' };
+      if (bmi < 25) return { label: 'Normal', cls: 'good' };
+      if (bmi < 30) return { label: 'Fazla Kilolu', cls: 'warn' };
+      return { label: 'Obez', cls: 'danger' };
+    }
+
+    function classifyBP(sys, dia) {
+      if (!sys || !dia) return { label: '—', cls: 'neutral' };
+      if (sys < 90 || dia < 60) return { label: 'Düşük Tansiyon', cls: 'warn' };
+      if (sys <= 120 && dia <= 80) return { label: 'Normal', cls: 'good' };
+      if (sys <= 139 || dia <= 89) return { label: 'Yüksek Normal', cls: 'warn' };
+      return { label: 'Hipertansiyon', cls: 'danger' };
+    }
+
+    function classifyPulse(pulse) {
+      if (!pulse) return { label: '—', cls: 'neutral' };
+      if (pulse < 60) return { label: 'Bradikardi', cls: 'warn' };
+      if (pulse <= 100) return { label: 'Normal', cls: 'good' };
+      return { label: 'Taşikardi', cls: 'danger' };
+    }
+
+    function classifySteps(steps) {
+      if (!steps) return { label: '—', cls: 'neutral' };
+      if (steps >= 10000) return { label: 'Mükemmel ✨', cls: 'good' };
+      if (steps >= 7000) return { label: 'İyi 👍', cls: 'good' };
+      if (steps >= 4000) return { label: 'Orta', cls: 'warn' };
+      return { label: 'Yetersiz', cls: 'danger' };
+    }
+
+    function classifySugar(val, type) {
+      if (type === 'Açlık') {
+        if (val < 70) return { label: 'Düşük', cls: 'danger' };
+        if (val > 100) return { label: 'Yüksek', cls: 'warn' };
+        return { label: 'Normal', cls: 'good' };
+      } else {
+        if (val < 70) return { label: 'Düşük', cls: 'danger' };
+        if (val > 140) return { label: 'Yüksek', cls: 'warn' };
+        return { label: 'Normal', cls: 'good' };
+      }
+    }
+
+    function generateRecommendations(records) {
+      const tips = [];
+      if (!records.length) return [];
+      let w = null, h = null, sys = null, dia = null, pu = null, st = null, todayCal = 0, water = 0;
+      let lastSugarVal = null, lastSugarType = null;
+
+      const todayStr = new Date().toISOString().split('T')[0];
+      for (let i = records.length - 1; i >= 0; i--) {
+        const r = records[i];
+        if (w === null && r.weight) w = r.weight;
+        if (h === null && r.height) h = r.height;
+        if (sys === null && r.systolic) { sys = r.systolic; dia = r.diastolic; }
+        if (pu === null && r.pulse) pu = r.pulse;
+        if (st === null && r.steps) st = r.steps;
+        if (r.date === todayStr) {
+          if (r.meals) todayCal = r.meals.reduce((sum, m) => sum + m.cal, 0);
+          if (r.water) water = r.water;
+        }
+        if (lastSugarVal === null && r.sugars && r.sugars.length > 0) {
+          const lastS = r.sugars[r.sugars.length - 1];
+          lastSugarVal = lastS.val;
+          lastSugarType = lastS.type;
+        }
+      }
+
+      const bmi = (w && h) ? calcBMI(w, h) : null;
+      if (bmi !== null) {
+        if (bmi < 18.5) tips.push({ icon: '🍽️', cat: 'Beslenme', title: 'Kalori Artırın', text: 'VKİ düşük. Protein ve sağlıklı yağlardan (zeytinyağı, avokado, kuruyemiş) zengin besinler tüketebilirsiniz.' });
+        else if (bmi < 25) tips.push({ icon: '✅', cat: 'Genel', title: 'Harika Durumdayız!', text: 'Mevcut alışkanlıkları sürdürün; dengeli beslenme ve egzersize devam edin.' });
+        else if (bmi < 30) {
+          tips.push({ icon: '⚖️', cat: 'Kilo', title: 'Kilo Kontrolü', text: 'Porsiyon kontrolüne dikkat edin. Rafine karbonhidratları azaltıp lifli gıdalar ekleyin.' });
+          tips.push({ icon: '🚶', cat: 'Egzersiz', title: 'Aktif Yaşam', text: 'Günde 10.000 adım hedefleyin, asansör yerine merdiven kullanın.' });
+        } else {
+          tips.push({ icon: '🏥', cat: 'Sağlık', title: 'Uzman Desteği', text: 'Obezite seviyesindesiniz. Bir sağlık uzmanıyla görüşerek size özel plan oluşturun.' });
+          tips.push({ icon: '🥦', cat: 'Beslenme', title: 'İşlenmiş Gıdalar', text: 'Fast-food ve eklenti şekeri kısıtlayın. Sebze ağırlıklı beslenin.' });
+        }
+      }
+
+      if (w && h) {
+        const bmr = (10 * w) + (6.25 * h) - (5 * 30) + 5;
+        const targetCal = Math.round(bmr * 1.3);
+        if (todayCal > 0) {
+          if (todayCal > targetCal + 200) tips.push({ icon: '🔥', cat: 'Diyetisyen', title: 'Kalori Fazlası', text: `Bugün hedeflenenin üzerinde kalori aldınız. Fazlalığı yakmak için akşam 45dk ekstra yürüyüş yapabilirsiniz.` });
+          else if (todayCal < targetCal - 500) tips.push({ icon: '⚠️', cat: 'Diyetisyen', title: 'Yetersiz Beslenme', text: `Çok düşük kalori aldınız. Metabolizmanızın yavaşlamaması için proteinli kuruyemiş veya yoğurt gibi ara öğünler ekleyin.` });
+          else tips.push({ icon: '🎉', cat: 'Diyetisyen', title: 'Mükemmel Denge', text: `Günlük kalori hedefinizle uyumlusunuz. Yağ yakımı ve enerji dengesi için ideal aralıktasınız.` });
+        }
+      }
+
+      const bp = sys ? classifyBP(sys, dia) : { cls: 'neutral' };
+      if (bp.cls === 'danger') tips.push({ icon: '❤️', cat: 'Tansiyon', title: 'Hipertansiyon Riski', text: 'Tansiyonunuz oldukça yüksek. Günlük sodyum (tuz) alımını sınırlayın (<5g) ve stresi yönetin.' });
+      else if (bp.cls === 'warn') tips.push({ icon: '🧂', cat: 'Beslenme', title: 'Tuzu Azaltın', text: 'Tansiyonunuz yüksek normale yakın. Yemeklerinize ekstra tuz serpmemeye dikkat edin.' });
+
+      const pulse = pu ? classifyPulse(pu) : { cls: 'neutral' };
+      if (pulse.cls === 'danger') tips.push({ icon: '💓', cat: 'Nabız', title: 'Yüksek Nabız', text: 'Nabzınız (taşikardi) yüksek. Çay/kahve (kafein) tüketimini kısıtlayın ve kaliteli uyku almaya çalışın.' });
+
+      // Dynamic Steps
+      const targetSteps = (typeof customTargets !== 'undefined' && customTargets.steps) ? customTargets.steps : 8000;
+      if (st !== null) {
+        if (st < (targetSteps * 0.3)) tips.push({ icon: '🛋️', cat: 'Hareket', title: 'Aşırı Hareketsizlik', text: `Adım sayınız ( ${st} ) hedefin çok gerisinde. Oturarak çalışıyorsanız saat başı 5 dk ev/ofis içi turlama yapın.` });
+        else if (st < targetSteps) tips.push({ icon: '👟', cat: 'Hareket', title: 'Hedefe Yaklaşıyorsunuz', text: `${targetSteps} hedefine tam ulaşamadınız. Sadece biraz daha yürüyerek kalbinizi güçlendirin.` });
+        else tips.push({ icon: '🏆', cat: 'Hareket', title: 'Hedefe Ulaşıldı!', text: `Harika! Günlük ${targetSteps} adım hedefini geçtiniz. Kalp sağlığınız için mükemmel bir iş çıkardınız.` });
+      }
+
+      // Dynamic Water
+      const targetWater = (typeof customTargets !== 'undefined' && customTargets.water) ? customTargets.water : 2500;
+      if (water < (targetWater * 0.4)) tips.push({ icon: '🌵', cat: 'Hidrasyon', title: 'Ciddi Dehidrasyon', text: `Bugün çok az su (${water}ml) içtiniz! Baş ağrısı ve yorgunluğu önlemek için hemen 2 bardak su için.` });
+      else if (water < targetWater) tips.push({ icon: '💧', cat: 'Hidrasyon', title: 'Su İçmeyi Hatırlat', text: `Günlük ${targetWater}ml hedefine ulaşmak için bol su tüketmeye devam edin.` });
+      else tips.push({ icon: '💦', cat: 'Hidrasyon', title: 'Mükemmel Hidrasyon', text: `Tebrikler! Hücreleriniz nefes alıyor, bugün mükemmel su tükettiniz.` });
+
+      // Blood Sugar
+      if (lastSugarVal !== null) {
+        const sugarClass = classifySugar(lastSugarVal, lastSugarType).cls;
+        if (sugarClass === 'danger') {
+          tips.push({ icon: '📛', cat: 'Diyabet', title: 'Şeker Sınırı Aşılmış', text: `${lastSugarType} kan şekeriniz yüksek çıkmış. Basit karbonhidratı (tatlı, ekmek) bırakıp yeşil çay deneyin.` });
+        } else if (sugarClass === 'warn') {
+          tips.push({ icon: '🍩', cat: 'Diyabet', title: 'GI Uyarısı', text: 'Karbonhidrat limitindesiniz. Düşük Glisemik İndeksli (GI) yulaf, mercimek gibi öğünlere ağırlık verin.' });
+        }
+      }
+
+      // ─── Tahlil (Medical Report) Analizi (Genişletilmiş) ───
+      if (typeof allLabReports !== 'undefined' && allLabReports.length > 0) {
+        const sortedLabs = [...allLabReports].sort((a, b) => b.report_date.localeCompare(a.report_date));
+        const latestLab = sortedLabs[0];
+        const labDateStr = new Date(latestLab.report_date).toLocaleDateString('tr-TR', { day: '2-digit', month: 'short', year: 'numeric' });
+
+        const LAB_ADVICE_MAP = {
+          glucose: {
+            low: { icon: '🍎', cat: 'Tahlil', title: 'Kan Şekeri Düşük', text: 'Açlık şekeriniz düşük. Hipoglisemi riskine karşı yanınızda kuru meyve bulundurun.' },
+            high: { icon: '🥗', cat: 'Tahlil', title: 'Kan Şekeri Yüksek', text: 'Şeker seviyeniz yüksek. Karbonhidratı azaltıp lifli gıdalara (sebze, kuruyemiş) ağırlık verin.' }
+          },
+          cholesterol_total: {
+            high: { icon: '🥑', cat: 'Tahlil', title: 'Kolesterol Yüksek', text: 'Toplam kolesterol sınırda. Hayvansal yağları azaltıp bitkisel yağlara ve sebzelere geçiş yapın.' }
+          },
+          ldl: {
+            high: { icon: '🩸', cat: 'Tahlil', title: 'LDL (Kötü) Kolesterol Yüksek', text: 'LDL kolesterolünüz yüksek. Zeytinyağı, ceviz ve yulaf tüketin; kızartmalardan uzak durun.' }
+          },
+          hdl: {
+            low: { icon: '🏃', cat: 'Tahlil', title: 'HDL (İyi) Kolesterol Düşük', text: 'İyi kolesterolünüz düşük. Haftalık egzersiz sürenizi artırın ve Omega-3 (balık) tüketin.' }
+          },
+          triglyceride: {
+            high: { icon: '🍭', cat: 'Tahlil', title: 'Trigliserid Yüksek', text: 'Trigliseridiniz yüksek. Şekerli gıdaları ve alkolü kesin, basit karbonhidratlardan uzak durun.' }
+          },
+          hba1c: {
+            high: { icon: '⚠️', cat: 'Tahlil', title: 'HbA1c Sınırda', text: 'Üç aylık şeker ortalamanız (HbA1c) yüksek. Gizli şeker riski için karbonhidrat kontrolü yapın.' }
+          },
+          iron: {
+            low: { icon: '🥩', cat: 'Tahlil', title: 'Demir Düşük', text: 'Demir seviyeniz düşük. Kırmızı et ve yumurta tüketin; yanında C vitamini (limon) alarak emilimi artırın.' }
+          },
+          ferritin: {
+            low: { icon: '🔋', cat: 'Tahlil', title: 'Demir Deposu (Ferritin) Az', text: 'Demir depolarınız boşalmış. Halsizlik yapabilir, demir zengini gıdaları beslenmenize ekleyin.' }
+          },
+          b12: {
+            low: { icon: '🧠', cat: 'Tahlil', title: 'B12 Vitamini Eksik', text: 'B12 seviyeniz düşük. Unutkanlık ve yorgunluk yapabilir; hayvansal protein tüketin veya takviye alın.' }
+          },
+          vitamin_d: {
+            low: { icon: '☀️', cat: 'Tahlil', title: 'D Vitamini Eksik', text: 'D vitamini seviyeniz düşük. Kemik sağlığı için her gün 15-20 dk güneşlenin veya takviye kullanın.' }
+          },
+          tsh: {
+            low: { icon: '🦋', cat: 'Tahlil', title: 'TSH Düşük (Hipertiroidi)', text: 'Tiroid değeriniz düşük. Çarpıntı veya sinirlilik yapabilir; bir endokrinoloğa danışın.' },
+            high: { icon: '🦋', cat: 'Tahlil', title: 'TSH Yüksek (Hipotiroidi)', text: 'Tiroid değeriniz yüksek. Kilo artışı ve halsizlik yapabilir; uzman desteği almanız önerilir.' }
+          },
+          hemoglobin: {
+            low: { icon: '🩸', cat: 'Tahlil', title: 'Hemoglobin Düşük (Kansızlık)', text: 'Hemoglobin düşük, anemi belirtisi olabilir. Demir alımınıza dikkat edin ve doktorunuza danışın.' }
+          },
+          creatinine: {
+            high: { icon: '💧', cat: 'Tahlil', title: 'Kreatinin Yüksek', text: 'Böbrek değeriniz sınırda. Böbrekleri yormamak için bol su tüketin ve aşırı proteinden kaçının.' }
+          },
+          alt_sgpt: {
+            high: { icon: '🌿', cat: 'Tahlil', title: 'ALT (Karaciğer Enzimi) Yüksek', text: 'Karaciğer enziminiz yüksek. Yağlanma olabilir; alkolü kesin ve enginar gibi sebzeler tüketin.' }
+          },
+          ast_sgot: {
+            high: { icon: '🍋', cat: 'Tahlil', title: 'AST (Karaciğer Enzimi) Yüksek', text: 'AST seviyeniz yüksek. Karaciğerinizi dinlendirmek için detoks etkisi olan gıdaları tercih edin.' }
+          }
+        };
+
+        Object.keys(LAB_REFS).forEach(f => {
+          const val = parseFloat(latestLab[f]);
+          if (!val && val !== 0) return;
+          const ref = LAB_REFS[f];
+          const advice = LAB_ADVICE_MAP[f];
+          if (!advice) return;
+
+          if (val < ref.min && advice.low) {
+            tips.push({ ...advice.low, text: `[${labDateStr}] ${advice.low.text} (Sonuç: ${val} ${ref.unit})` });
+          } else if (val > ref.max && advice.high) {
+            tips.push({ ...advice.high, text: `[${labDateStr}] ${advice.high.text} (Sonuç: ${val} ${ref.unit})` });
+          }
+        });
+      }
+
+      return tips;
+    }
+
+    const charts = {};
+    const GRID = 'rgba(255,255,255,0.06)';
+    const TICK = 'rgba(255,255,255,0.45)';
+    const baseOpts = {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { color: TICK, font: { family: 'Inter', size: 11 }, boxWidth: 10 } },
+        tooltip: { backgroundColor: 'rgba(18,21,31,0.96)', titleColor: '#fff', bodyColor: TICK, borderColor: 'rgba(108,99,255,0.3)', borderWidth: 1, padding: 10, cornerRadius: 8 }
+      },
+      scales: {
+        x: { grid: { color: GRID }, ticks: { color: TICK, font: { family: 'Inter', size: 10 } } },
+        y: { grid: { color: GRID }, ticks: { color: TICK, font: { family: 'Inter', size: 10 } } }
+      },
+      elements: { line: { tension: 0.4, borderWidth: 2 }, point: { radius: 4, hoverRadius: 7, borderWidth: 0 } },
+      animation: { duration: 500 }
+    };
+
+    function fmtDate(d) {
+      const dt = new Date(d);
+      return `${String(dt.getDate()).padStart(2, '0')}.${String(dt.getMonth() + 1).padStart(2, '0')}`;
+    }
+
+    function destroyChart(id) { if (charts[id]) { charts[id].destroy(); delete charts[id]; } }
+
+    function mkLine(id, labels, datasets) {
+      destroyChart(id);
+      const ctx = document.getElementById(id + 'Chart')?.getContext('2d');
+      if (!ctx) return;
+      charts[id] = new Chart(ctx, { type: 'line', data: { labels, datasets }, options: baseOpts });
+    }
+
+    function renderAllCharts(records) {
+      if (!records.length) return;
+      const rangeBtn = document.querySelector('.chart-filter-btn.active');
+      const days = parseInt(rangeBtn ? rangeBtn.dataset.range : '7');
+      let filtered = records;
+      if (days > 0) {
+        const cutoff = new Date();
+        cutoff.setDate(cutoff.getDate() - days);
+        const cutoffStr = cutoff.toISOString().split('T')[0];
+        filtered = records.filter(r => r.date >= cutoffStr);
+      }
+      if (filtered.length === 1) filtered = [filtered[0], Object.assign({}, filtered[0], { date: new Date(new Date(filtered[0].date).getTime() + 86400000).toISOString().split('T')[0] })];
+      const labels = filtered.map(r => fmtDate(r.date));
+      mkLine('weight', labels, [{ label: 'Kilo (kg)', data: filtered.map(r => r.weight), borderColor: '#6c63ff', backgroundColor: 'rgba(108,99,255,0.1)', fill: true, pointBackgroundColor: '#6c63ff' }]);
+      const bmis = filtered.map(r => calcBMI(r.weight, r.height));
+      mkLine('bmi', labels, [{ label: 'VKİ', data: bmis, borderColor: '#00d4aa', backgroundColor: 'rgba(0,212,170,0.1)', fill: true, pointBackgroundColor: bmis.map(v => v < 18.5 ? '#ffa947' : v < 25 ? '#00d4aa' : v < 30 ? '#ffa947' : '#ff4d6d') }]);
+      const withBP = filtered.filter(r => r.systolic && r.diastolic);
+      if (withBP.length) {
+        destroyChart('bp');
+        const bpCtx = document.getElementById('bpChart')?.getContext('2d');
+        if (bpCtx) {
+          charts['bp'] = new Chart(bpCtx, {
+            type: 'line', data: {
+              labels: withBP.map(r => fmtDate(r.date)), datasets: [
+                { label: 'Sistolik', data: withBP.map(r => r.systolic), borderColor: '#ff6b9d', backgroundColor: 'transparent', pointBackgroundColor: '#ff6b9d' },
+                { label: 'Diyastolik', data: withBP.map(r => r.diastolic), borderColor: '#ffa947', backgroundColor: 'transparent', pointBackgroundColor: '#ffa947' }
+              ]
+            }, options: baseOpts
+          });
+        }
+      } else destroyChart('bp');
+      const withPulse = filtered.filter(r => r.pulse);
+      if (withPulse.length) mkLine('pulse', withPulse.map(r => fmtDate(r.date)), [{ label: 'Nabız (bpm)', data: withPulse.map(r => r.pulse), borderColor: '#ff6b9d', backgroundColor: 'rgba(255,107,157,0.1)', fill: true, pointBackgroundColor: '#ff6b9d' }]);
+      else destroyChart('pulse');
+      const withSteps = filtered.filter(r => r.steps);
+      if (withSteps.length) {
+        destroyChart('steps');
+        const sCtx = document.getElementById('stepsChart')?.getContext('2d');
+        if (sCtx) {
+          charts['steps'] = new Chart(sCtx, {
+            type: 'bar', data: {
+              labels: withSteps.map(r => fmtDate(r.date)),
+              datasets: [{
+                label: 'Adım', data: withSteps.map(r => r.steps),
+                backgroundColor: withSteps.map(r => r.steps >= 10000 ? 'rgba(0,212,170,0.75)' : r.steps >= 7000 ? 'rgba(255,169,71,0.7)' : 'rgba(255,77,109,0.7)'),
+                borderRadius: 6, borderWidth: 0
+              }]
+            }, options: { ...baseOpts, plugins: { ...baseOpts.plugins, legend: { display: false } } }
+          });
+        }
+      } else destroyChart('steps');
+    }
+
+    let allRecords = [];
+    let allRecordsStale = true;
+    async function refreshRecords(force = false) {
+      if (allRecords.length > 0 && !allRecordsStale && !force) return;
+      allRecords = await getAllRecords();
+      allRecordsStale = false;
+    }
+    function showToast(msg, type = 'success') {
+      const t = document.getElementById('toast');
+      const title = type === 'error' ? 'HATA ⚠️' : (type === 'success' ? 'BAŞARILI ✅' : 'BİLGİ ℹ️');
+
+      t.innerHTML = `
+        <div class="toast-header">
+          <span>${title}</span>
+          <button class="toast-copy-btn" onclick="copyToastText(this)">Kopyala</button>
+        </div>
+        <div class="toast-msg">${msg}</div>
+      `;
+
+      t.className = 'toast show ' + type;
+      clearTimeout(t._timer);
+      t._timer = setTimeout(() => t.classList.remove('show'), 15000); // 15 saniye kalsın (hata durumunda okuması için)
+    }
+
+    function copyToastText(btn) {
+      const msg = btn.closest('.toast').querySelector('.toast-msg').innerText;
+      navigator.clipboard.writeText(msg).then(() => {
+        const oldText = btn.innerText;
+        btn.innerText = 'Kopyalandı!';
+        setTimeout(() => btn.innerText = oldText, 2000);
+      });
+    }
+
+    function navigateTo(view) {
+      document.querySelectorAll('.nav-item').forEach(el => el.classList.toggle('active', el.dataset.view === view));
+      document.querySelectorAll('.view').forEach(el => el.classList.toggle('active', el.id === 'view-' + view));
+      document.getElementById('sidebar')?.classList.remove('open');
+      document.getElementById('drawer-entry')?.classList.remove('open');
+      document.getElementById('sidebar-overlay')?.classList.remove('show');
+      if (view === 'dashboard') renderDashboard();
+      if (view === 'entry') { loadCustomFoods(); loadMeds(); }
+      if (view === 'history') renderHistory();
+      if (view === 'recommendations') renderRecommendations();
+      if (view === 'labs') renderLabReports();
+    }
+
+    let customTargets = { steps: 8000, water: 2500, cal: null };
+    async function loadTargets() {
+      try {
+        const res = await apiFetch('api/goals.php?action=get');
+        const data = await res.json();
+        if (data.status === 'success' && data.data) {
+          customTargets = { steps: parseInt(data.data.steps) || 8000, water: parseInt(data.data.water) || 2500, cal: parseInt(data.data.cal) || null };
+        }
+      } catch (e) { }
+    }
+
+    async function adjTarget(key, diff) {
+      if (key === 'cal' && !customTargets.cal) {
+        const tTxt = document.getElementById('card-cal-value').innerText.split('/');
+        const curT = parseInt(tTxt[1]);
+        customTargets.cal = curT || 2300;
+      }
+      customTargets[key] += diff;
+      if (customTargets[key] < 0) customTargets[key] = 0;
+      try { await apiFetch('api/goals.php?action=update', { method: 'POST', body: JSON.stringify(customTargets) }); } catch (e) { }
+      renderDashboard();
+    }
+
+    async function renderDashboard() {
+      await loadTargets();
+      await loadCustomFoods();
+      await loadMeds();
+      await refreshRecords();
+      let w = null, h = null, sys = null, dia = null, pu = null, st = null, sugVal = null, sugType = null, todayCal = 0, todayWater = 0;
+      const todayStr = new Date().toISOString().split('T')[0];
+      for (let i = allRecords.length - 1; i >= 0; i--) {
+        const r = allRecords[i];
+        if (w === null && r.weight) w = r.weight;
+        if (h === null && r.height) h = r.height;
+        if (sys === null && r.systolic) { sys = r.systolic; dia = r.diastolic; }
+        if (pu === null && r.pulse) pu = r.pulse;
+        if (st === null && r.steps) st = r.steps;
+        if (sugVal === null && r.sugars && r.sugars.length > 0) {
+          const lastSug = r.sugars[r.sugars.length - 1];
+          sugVal = lastSug.val; sugType = lastSug.type;
+        }
+        if (r.date === todayStr) {
+          if (r.meals) todayCal = r.meals.reduce((sum, m) => sum + parseInt(m.cal || 0), 0);
+          if (r.water) todayWater = r.water;
+        }
+      }
+      let targetCal = 0;
+      if (w && h) {
+        const bmr = (10 * w) + (6.25 * h) - (5 * 30) + 5;
+        targetCal = Math.round(bmr * 1.3);
+      }
+      if (customTargets.cal) targetCal = customTargets.cal;
+      document.getElementById('target-steps-lbl').innerText = customTargets.steps.toLocaleString('tr-TR');
+      document.getElementById('target-water-lbl').innerText = customTargets.water.toLocaleString('tr-TR');
+      const bmi = (w && h) ? calcBMI(w, h) : null;
+      const bmiC = classifyBMI(bmi);
+      const bpC = sys ? classifyBP(sys, dia) : { label: '—', cls: 'neutral' };
+      const puC = pu ? classifyPulse(pu) : { label: '—', cls: 'neutral' };
+      const stC = st ? (st >= customTargets.steps ? { label: 'Harika', cls: 'good' } : { label: 'Aktif Olun', cls: 'warn' }) : { label: '—', cls: 'neutral' };
+      document.getElementById('card-bmi-value').textContent = bmi !== null ? bmi : '—';
+      const bmiLbl = document.getElementById('card-bmi-label');
+      bmiLbl.textContent = bmiC.label; bmiLbl.className = 'card-status ' + bmiC.cls;
+      document.getElementById('card-weight-value').textContent = w ? w + ' kg' : '—';
+      document.getElementById('card-bp-value').textContent = sys ? `${sys}/${dia}` : '—';
+      const bpLbl = document.getElementById('card-bp-label');
+      bpLbl.textContent = bpC.label; bpLbl.className = 'card-status ' + bpC.cls;
+      document.getElementById('card-pulse-value').textContent = pu ? pu + ' bpm' : '—';
+      const puLbl = document.getElementById('card-pulse-label');
+      puLbl.textContent = puC.label; puLbl.className = 'card-status ' + puC.cls;
+      document.getElementById('card-steps-value').textContent = st ? st.toLocaleString('tr-TR') : '—';
+      const stLbl = document.getElementById('card-steps-label');
+      stLbl.textContent = stC.label; stLbl.className = 'card-status ' + stC.cls;
+      const calVal = document.getElementById('card-cal-value');
+      const calLbl = document.getElementById('card-cal-label');
+      if (targetCal > 0) {
+        calVal.textContent = `${todayCal} / ${targetCal}`;
+        if (todayCal === 0) { calLbl.textContent = 'Bugün kayıt yok'; calLbl.className = 'card-status neutral'; }
+        else if (todayCal > targetCal + 200) { calLbl.textContent = 'Hedef Aşıldı'; calLbl.className = 'card-status danger'; }
+        else if (todayCal < targetCal - 500) { calLbl.textContent = 'Yetersiz Kalori'; calLbl.className = 'card-status warn'; }
+        else { calLbl.textContent = 'İdeal Aralıkta'; calLbl.className = 'card-status good'; }
+      } else { calVal.textContent = '— / —'; calLbl.textContent = 'Kilo/Boy girin'; calLbl.className = 'card-status neutral'; }
+      document.getElementById('card-water-value').textContent = `${todayWater} / ${customTargets.water} ml`;
+      const stPerc = st ? Math.min(100, Math.round((st / customTargets.steps) * 100)) : 0;
+      document.getElementById('ring-steps')?.style.setProperty('--progress', stPerc + '%');
+      const wPerc = todayWater ? Math.min(100, Math.round((todayWater / customTargets.water) * 100)) : 0;
+      document.getElementById('ring-water')?.style.setProperty('--progress', wPerc + '%');
+      const sugValEl = document.getElementById('card-sugar-value');
+      const sugLbl = document.getElementById('card-sugar-label');
+      if (sugVal) {
+        sugValEl.textContent = `${sugVal} mg/dL (${sugType})`;
+        const sc = classifySugar(sugVal, sugType);
+        sugLbl.textContent = sc.label; sugLbl.className = 'card-status ' + sc.cls;
+      } else { sugValEl.textContent = '—'; sugLbl.textContent = 'Kayıt yok'; sugLbl.className = 'card-status neutral'; }
+      const hasData = allRecords.length > 0;
+      document.getElementById('no-data-msg').style.display = hasData ? 'none' : 'block';
+      document.getElementById('charts-section').style.display = hasData ? 'grid' : 'none';
+      if (hasData) {
+        renderAllCharts(allRecords);
+        updateVirtualTwin(allRecords);
+      }
+    }
+
+    // ─── Virtual Twin Logic ──────────────────────────────────────────
+    // ─── Virtual Twin Logic (Humanized) ──────────────────────────────
+    function updateVirtualTwin(records) {
+      let w = null, h = null;
+      if (records && records.length > 0) {
+        for (let i = records.length - 1; i >= 0; i--) {
+          if (w === null && records[i].weight) w = records[i].weight;
+          if (h === null && records[i].height) h = records[i].height;
+          if (w !== null && h !== null) break;
+        }
+      }
+      w = w || 75; h = h || 175;
+      const bmi = (w / ((h / 100) ** 2));
+      const avatarId = window.currentUserAvatarId || 'm1';
+
+      // Find TODAY's specific record for suggestion logic
+      const dSafe = new Date();
+      const todayStr = dSafe.getFullYear() + '-' + String(dSafe.getMonth() + 1).padStart(2, '0') + '-' + String(dSafe.getDate()).padStart(2, '0');
+      const latest = (records && records.length > 0) ? (records.find(r => r.date === todayStr) || { steps: 0, water: 0, calories: 0 }) : { steps: 0, water: 0, calories: 0 };
+
+      const torso = document.getElementById('v-torso');
+      const character = document.getElementById('v-character');
+      const hair = document.getElementById('v-hair-style');
+      const glasses = document.getElementById('v-glasses');
+      const sunglasses = document.getElementById('v-sunglasses');
+      const facialHair = document.getElementById('v-facial-hair');
+      const eyesBasic = document.getElementById('v-eyes-basic');
+      const hairExtra = document.getElementById('v-hair-extra');
+      const skinBase = document.getElementById('v-skin-base');
+
+      const aura = document.querySelector('.v-twin-aura');
+      const mouth = document.getElementById('v-mouth');
+      const status = document.querySelector('.v-twin-status');
+      const vitality = document.getElementById('v-vitality-fill');
+
+      // Reset features
+      [glasses, sunglasses, facialHair, hairExtra].forEach(el => { if (el) el.style.display = 'none'; });
+      if (eyesBasic) eyesBasic.style.display = 'block';
+      hair.setAttribute('stroke-width', '8');
+      hair.setAttribute('fill', 'none');
+      hair.setAttribute('stroke', '#333');
+      skinBase.setAttribute('d', 'M 38 35 Q 38 18 50 18 Q 62 18 62 35 Q 62 45 50 45 Q 38 45 38 35');
+
+      switch (avatarId) {
+        case 'm1': hair.setAttribute('d', 'M 40 22 Q 50 12 60 22'); break;
+        case 'f1': hair.setAttribute('d', 'M 35 25 Q 50 10 65 25 L 68 45 Q 50 40 32 45 Z'); hair.setAttribute('fill', '#333'); break;
+        case 'pro1': if (glasses) glasses.style.display = 'block'; if (facialHair) facialHair.style.display = 'block'; hair.setAttribute('d', 'M 35 25 Q 50 12 65 25'); break;
+        case 'pro2': if (sunglasses) sunglasses.style.display = 'block'; hair.setAttribute('d', 'M 38 22 Q 50 8 62 22'); break;
+        case 'pro-f1': if (sunglasses) sunglasses.style.display = 'block'; if (hairExtra) hairExtra.style.display = 'block'; hair.setAttribute('d', 'M 38 22 Q 50 15 62 22'); break;
+        case 'blonde-m': hair.setAttribute('d', 'M 38 22 Q 50 10 62 22'); hair.setAttribute('stroke', '#e1c16e'); break;
+        case 'blonde-f': hair.setAttribute('d', 'M 30 25 Q 50 5 70 25 L 75 55 Q 50 45 25 55 Z'); hair.setAttribute('fill', '#e1c16e'); break;
+        case 'ginger-m': hair.setAttribute('d', 'M 40 20 Q 50 10 60 20'); hair.setAttribute('stroke', '#b55239'); break;
+        case 'ginger-f': hair.setAttribute('d', 'M 32 25 Q 50 5 68 25 L 72 60 Q 50 48 28 60 Z'); hair.setAttribute('fill', '#b55239'); break;
+        case 'grey-m': hair.setAttribute('d', 'M 40 25 Q 50 15 60 25'); hair.setAttribute('stroke', '#ccc'); break;
+        case 'grey-f': hair.setAttribute('d', 'M 35 25 Q 50 12 65 25 L 68 45 Q 50 40 32 45 Z'); hair.setAttribute('fill', '#ccc'); break;
+        case 'boy': skinBase.setAttribute('d', 'M 40 35 Q 40 20 50 20 Q 60 20 60 35 Q 60 45 50 45 Q 40 45 40 35'); hair.setAttribute('d', 'M 42 20 L 45 15 M 50 18 L 50 12 M 58 20 L 55 15'); hair.setAttribute('stroke-width', '3'); break;
+        case 'girl': skinBase.setAttribute('d', 'M 40 35 Q 40 20 50 20 Q 60 20 60 35 Q 60 45 50 45 Q 40 45 40 35'); hair.setAttribute('d', 'M 38 22 Q 50 10 62 22 M 38 25 L 34 35 M 62 25 L 66 35'); hair.setAttribute('stroke-width', '4'); break;
+        case 'hijab': hair.setAttribute('d', 'M 30 25 Q 50 5 70 25 L 75 55 Q 50 70 25 55 Z'); hair.setAttribute('fill', '#555'); break;
+        case 'hat-m': hair.setAttribute('d', 'M 32 28 H 68 L 65 20 H 35 Z'); hair.setAttribute('fill', 'var(--purple)'); hair.setAttribute('stroke', 'none'); break;
+        case 'hat-f': hair.setAttribute('d', 'M 28 30 Q 50 5 72 30 H 28'); hair.setAttribute('fill', 'var(--teal)'); break;
+        case 'curly-f': hair.setAttribute('d', 'M 30 30 Q 50 10 70 30 L 75 50 Q 50 40 25 50 Z'); hair.setAttribute('fill', '#222'); hair.setAttribute('stroke-width', '12'); break;
+        case 'beard2': if (facialHair) facialHair.style.display = 'block'; hair.setAttribute('d', 'M 40 22 Q 50 10 60 22'); break;
+        case 'glasses1': if (glasses) glasses.style.display = 'block'; hair.setAttribute('d', 'M 40 22 Q 50 12 60 22'); break;
+        case 'cool1': hair.setAttribute('d', 'M 35 25 L 50 15 L 65 25'); hair.setAttribute('stroke-width', '10'); break;
+      }
+
+      // Continuous BMI-based Body Scaling (Dramatic & Dynamic)
+      // Base tW is 16 for BMI 22. 
+      // Scale: 12 (Very thin) to 36 (Very wide)
+      let tW = 16 + (bmi - 22) * 1.2;
+      tW = Math.max(10, Math.min(40, tW));
+
+      const left = 50 - tW, right = 50 + tW;
+      torso.setAttribute('d', `M ${left} 45 Q 50 40 ${right} 45 L ${right - 5} 75 Q 50 78 ${left + 5} 75 Z`);
+      const heightScale = Math.max(0.8, Math.min(1.2, h / 175));
+      character.setAttribute('transform', `scale(${heightScale})`);
+
+      const now = new Date();
+      const currentVal = now.getHours() + (now.getMinutes() / 60);
+      const activeStart = 7, activeEnd = 23, totalActiveTime = activeEnd - activeStart;
+      const elapsed = Math.max(0, Math.min(totalActiveTime, currentVal - activeStart));
+      const dayElapsedRatio = elapsed / totalActiveTime;
+
+      let timeCategory = "Sabah";
+      if (currentVal >= 23 || currentVal < 7) timeCategory = "Gece";
+      else if (currentVal >= 18) timeCategory = "Akşam";
+      else if (currentVal >= 12) timeCategory = "Öğle";
+      else timeCategory = "Sabah";
+
+      const stepGoal = customTargets.steps || 8000;
+      const waterGoal = customTargets.water || 2500;
+      const calGoal = customTargets.calories || 2000;
+
+      const sRatio = (latest.steps || 0) / stepGoal;
+      const wRatio = (latest.water || 0) / waterGoal;
+      const cRatio = (latest.calories || 0) / calGoal;
+
+      window.vStats = { bmi, sRatio, wRatio, cRatio, dayElapsedRatio, timeCategory };
+
+      const isWaterOk = wRatio >= (dayElapsedRatio * 0.9);
+      const isStepOk = sRatio >= (dayElapsedRatio * 0.8);
+      const isCalOk = cRatio <= (dayElapsedRatio + 0.15);
+
+      if (isWaterOk && isStepOk && isCalOk && bmi >= 18.5 && bmi < 25) {
+        mouth.setAttribute('d', 'M 46 34 Q 50 38 54 34');
+        status.textContent = `Durum: ${timeCategory} - Harika ✨`;
+        aura.style.opacity = '0.3';
+      } else {
+        let reason = "Dikkat";
+        if (!isWaterOk) reason += " (Su lazım 💧)";
+        else if (!isStepOk) reason += " (Harekete geç 👟)";
+        else if (!isCalOk) reason += " (Kalori uyarısı ⚠️)";
+        else if (bmi >= 30) reason += " (Kilo uyarısı ⚖️)";
+
+        mouth.setAttribute('d', 'M 46 38 Q 50 34 54 38');
+        status.textContent = `Durum: ${timeCategory} - ${reason}`;
+        aura.style.opacity = '0.05';
+
+        // Proactive Alert
+        if (!document.getElementById('v-bubble').classList.contains('active')) {
+          talkToV();
+        }
+      }
+    }
+
+    function talkToV() {
+      const bubble = document.getElementById('v-bubble');
+      const stats = window.vStats;
+      if (!stats) return;
+
+      let msg = "Harika gidiyorsun! ✨";
+
+      // Prioritize Metrics relative to Day Progress
+      if (stats.wRatio < (stats.dayElapsedRatio * 0.9)) {
+        msg = "Vücudun susuz kalıyor gibi, 1-2 bardak su içmeye ne dersin? 💧";
+      } else if (stats.sRatio < (stats.dayElapsedRatio * 0.8)) {
+        msg = "Hedefinin bir tık gerisindesin, kısa bir yürüyüş canlandırır! 👟";
+      } else if (stats.cRatio > (stats.dayElapsedRatio + 0.15)) {
+        msg = "Bugün biraz fazla mı kaçırdık? Akşamı hafif geçirebiliriz. 🥗";
+      } else if (stats.bmi > 25) {
+        msg = "Dengeli beslenmek ikimizi de mutlu eder! 🥦";
+      } else {
+        if (stats.timeCategory === "Sabah") msg = "Günaydın! Güne taze bir başlangıç yapalım mı? ☀️";
+        else if (stats.timeCategory === "Öğle") msg = "Günün en aktif saatleri! Enerjin bol olsun. ⚡";
+        else if (stats.timeCategory === "Akşam") msg = "Günün yorgunluğunu atma vakti. İyi gidiyoruz! 🌙";
+        else if (stats.timeCategory === "Gece") msg = "Bugünkü performansın için teşekkürler. İyi uykular! 😴";
+      }
+
+      bubble.textContent = msg;
+      bubble.classList.add('active');
+      setTimeout(() => bubble.classList.remove('active'), 6000);
+    }
+
+    function filterFoods() {
+      const q = document.getElementById('food-search').value.toLocaleLowerCase('tr-TR').trim();
+      const resDiv = document.getElementById('food-results');
+      if (!q) { resDiv.style.display = 'none'; return; }
+
+      const customMapped = customFoodsDB.map(f => ({ n: f.name, c: f.cal }));
+      const combinedDB = [...foodDB, ...customMapped];
+
+      console.log(`Search: "${q}", Total Items: ${combinedDB.length}, Custom: ${customMapped.length}`);
+
+      const matches = combinedDB.filter(f => f.n.toLocaleLowerCase('tr-TR').includes(q));
+
+      if (matches.length > 0) {
+        resDiv.innerHTML = matches.map(f => `<div class="food-suggestion-item" onclick="selectFood('${f.n.replace(/'/g, "\\'")}', ${f.c})"><span>${f.n}</span><span class="food-cal">${f.c} kcal</span></div>`).join('');
+        resDiv.style.display = 'block';
+      } else { resDiv.style.display = 'none'; }
+    }
+
+    function selectFood(name, cal) {
+      document.getElementById('food-search').value = name;
+      document.getElementById('entry-food-cal').value = cal;
+      document.getElementById('food-results').style.display = 'none';
+    }
+
+    async function saveFood() {
+      const date = document.getElementById('shared-date').value;
+      if (!date) {
+        allRecordsStale = true;
+        showToast('Lütfen tarih seçin!', 'error'); return;
+      }
+      const name = document.getElementById('food-search').value.trim();
+      const cal = parseInt(document.getElementById('entry-food-cal').value);
+      if (!name || !cal) { showToast('Yemek adı ve kalori zorunludur!', 'error'); return; }
+      const timeStr = new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+      try {
+        await apiFetch('api/records.php?action=add_meal', {
+          method: 'POST', body: JSON.stringify({ date, name, cal, time: timeStr })
+        });
+        showToast('✅ Yemek kaydedildi!', 'success');
+        document.getElementById('entry-food-cal').value = '';
+        document.getElementById('food-search').value = '';
+      } catch (e) { showToast('Hata oluştu!', 'error'); }
+    }
+
+    let customMeds = [];
+    async function loadMeds() {
+      try {
+        const res = await apiFetch('api/meds.php?action=get');
+        const data = await res.json();
+        if (data.status === 'success' && data.data) {
+          customMeds = data.data;
+          renderMedsSelect();
+        }
+      } catch (e) { console.error('loadMeds error', e); }
+    }
+
+    function renderMedsSelect() {
+      const select = document.getElementById('entry-med-select');
+      select.innerHTML = customMeds.map(m => `<option value="${m}">${m}</option>`).join('');
+    }
+
+    function openMedsModal() {
+      renderMedsList();
+      document.getElementById('manage-meds-modal').classList.add('open');
+    }
+
+    function closeMedsModal() {
+      document.getElementById('manage-meds-modal').classList.remove('open');
+    }
+
+    function renderMedsList() {
+      const list = document.getElementById('manage-meds-list');
+      list.innerHTML = customMeds.map(m => `
+        <li style="display:flex; align-items:center; gap:10px; padding:12px; border-bottom:1px solid var(--border);">
+          <span style="flex:1;">${m}</span>
+          <button onclick="updateMedName('${m}')" style="background:var(--surface3); border:none; color:var(--text); padding:5px 10px; border-radius:6px; cursor:pointer; font-size:12px;">✏️ Düzenle</button>
+          <button onclick="deleteMedName('${m}')" style="background:rgba(255,77,109,0.1); border:none; color:var(--red); padding:5px 10px; border-radius:6px; cursor:pointer; font-size:12px;">🗑️ Sil</button>
+        </li>
+      `).join('');
+    }
+
+    async function updateMedName(oldName) {
+      const newName = prompt("Yeni isim girin:", oldName);
+      if (newName && newName !== oldName) {
+        try {
+          await apiFetch('api/meds.php?action=update', {
+            method: 'POST', body: JSON.stringify({ oldName, newName })
+          });
+          showToast("İlaç ismi güncellendi.");
+          await loadMeds();
+          renderMedsList();
+        } catch (e) { showToast("Sistem hatası", "error"); }
+      }
+    }
+
+    async function deleteMedName(name) {
+      if (confirm(`"${name}" ilacını silmek istediğinize emin misiniz?`)) {
+        try {
+          await apiFetch('api/meds.php?action=delete', {
+            method: 'POST', body: JSON.stringify({ name })
+          });
+          showToast("İlaç silindi.");
+          await loadMeds();
+          renderMedsList();
+        } catch (e) { showToast("Sistem hatası", "error"); }
+      }
+    }
+
+    async function addCustomMed() {
+      const input = document.getElementById('entry-new-med');
+      const val = input.value.trim();
+      if (val && !customMeds.includes(val)) {
+        try {
+          await apiFetch('api/meds.php?action=add', {
+            method: 'POST', body: JSON.stringify({ name: val })
+          });
+          showToast("✅ İlaç listeye eklendi!");
+          loadMeds();
+          input.value = '';
+        } catch (e) { }
+      } else if (customMeds.includes(val)) {
+        showToast("ℹ️ Bu ilaç zaten listenizde var.");
+      }
+    }
+
+    async function saveMedication() {
+      const select = document.getElementById('entry-med-select');
+      const medName = select.value;
+      if (!medName) return;
+      const date = getSharedDate();
+      if (!date) { showToast("⚠️ Lütfen tarih seçin!"); return; }
+
+      const timeStr = new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+
+      try {
+        await apiFetch('api/records.php?action=add_med', {
+          method: 'POST', body: JSON.stringify({ date, name: medName, time: timeStr })
+        });
+        showToast("✅ İlaç kaydedildi!", 'success');
+        showEntryResult(`<div class="result-box"><div class="result-item"><span class="result-label">Eklenen İlaç</span><span class="result-value good" style="color:var(--danger)">${medName} (${timeStr})</span></div></div>`);
+      } catch (e) { showToast('Hata oluştu!', 'error'); console.error(e); }
+    }
+
+    // ─── Step Tracking (Quick Add) ───────────────────────────────────
+    async function addSteps(amount) {
+      const d = new Date().toISOString().split('T')[0];
+      try {
+        const all = await getAllRecords();
+        const existing = all.find(r => r.date === d);
+        const steps = (existing && existing.steps ? parseInt(existing.steps) : 0) + amount;
+        await upsertRecord(d, { steps });
+        showToast(`👟 ${amount} adım eklendi!`, 'success');
+        renderDashboard();
+      } catch (e) { showToast('Hata oluştu!', 'error'); console.error(e); }
+    }
+
+    // ─── Water Tracking ──────────────────────────────────────────────
+    async function addWater(amount) {
+      const d = new Date().toISOString().split('T')[0];
+      try {
+        const all = await getAllRecords();
+        const existing = all.find(r => r.date === d);
+        const water = (existing && existing.water ? existing.water : 0) + amount;
+        await upsertRecord(d, { water });
+        showToast(`💧 ${amount}ml su eklendi!`, 'success');
+        renderDashboard();
+      } catch (e) { showToast('Hata oluştu!', 'error'); console.error(e); }
+    }
+
+    // ─── Custom Delete Modal ─────────────────────────────────────────
+    let _pendingDeleteDate = null;
+    let _pendingDeleteId = null;
+    let _pendingDeleteType = null;
+
+    function handleDelete(id, dateStr, type) {
+      if (!type) { console.error("handleDelete error: Type missing!"); return; }
+      console.log("handleDelete called:", { id, dateStr, type });
+      _pendingDeleteId = id;
+      _pendingDeleteDate = dateStr;
+      _pendingDeleteType = type;
+      document.getElementById('delete-modal').classList.add('open');
+    }
+    function closeDeleteModal() {
+      _pendingDeleteId = null;
+      _pendingDeleteDate = null;
+      _pendingDeleteType = null;
+      document.getElementById('delete-modal').classList.remove('open');
+    }
+
+    async function deleteRecord(id, date, type) {
+      if (!type) { console.error("deleteRecord error: Type missing!"); return; }
+      console.log("Deleting Record:", { id, date, type });
+      try {
+        const action = type === 'day' ? 'delete_day' : 'delete_item';
+        await apiFetch('api/records.php?action=' + action, {
+          method: 'POST', body: JSON.stringify({ id, date, type })
+        });
+        allRecordsStale = true;
+      } catch (e) { console.error(e); }
+    }
+
+    // ─── History ────────────────────────────────────────────────────
+    function formatTimeStr(dtStr) {
+      const dt = new Date(dtStr);
+      return Math.floor(dt.getTime() / 1000);
+    }
+
+    async function renderHistory() {
+      await refreshRecords();
+      const container = document.getElementById('history-list');
+      const stats = document.getElementById('history-stats');
+      if (!allRecords.length) {
+        container.innerHTML = '<p class="empty-msg">Henüz kayıt yok. Veri girişi yapın.</p>';
+        stats.innerHTML = '';
+        return;
+      }
+
+      const catFilter = document.getElementById('history-category').value;
+      const dateFrom = document.getElementById('history-date-from').value;
+      const dateTo = document.getElementById('history-date-to').value;
+
+      let events = [];
+      allRecords.forEach(r => {
+        const dtStr = r.updatedAt ? new Date(r.updatedAt) : new Date(r.date + 'T12:00:00');
+        const stamp = dtStr.getTime();
+        const df = new Date(r.date + 'T12:00:00');
+        const fDate = df.toLocaleDateString('tr-TR', { day: '2-digit', month: 'short', year: 'numeric' });
+
+        if (r.weight || r.height) {
+          events.push({ type: 'body', stamp, dateStr: r.date, fDate, recId: r.id, subId: r.id, data: { w: r.weight, h: r.height } });
+        }
+        if (r.systolic || r.diastolic || r.pulse) {
+          events.push({ type: 'heart', stamp, dateStr: r.date, fDate, recId: r.id, subId: r.id, data: { s: r.systolic, d: r.diastolic, p: r.pulse } });
+        }
+        if (r.steps || r.notes) {
+          events.push({ type: 'steps', stamp, dateStr: r.date, fDate, recId: r.id, subId: r.id, data: { st: r.steps, n: r.notes } });
+        }
+        if (r.meals) {
+          r.meals.forEach((m, idx) => {
+            const mStamp = new Date(`${r.date}T${m.time}:00`).getTime();
+            events.push({ type: 'food', stamp: mStamp || stamp, dateStr: r.date, fDate, recId: r.id, subId: m.id, data: { m: m.name, c: m.cal, t: m.time } });
+          });
+        }
+        if (r.water) {
+          events.push({ type: 'water', stamp, dateStr: r.date, fDate, recId: r.id, subId: r.id, data: { amt: r.water } });
+        }
+        if (r.meds) {
+          r.meds.forEach((m, idx) => {
+            const mStamp = new Date(`${r.date}T${m.time}:00`).getTime();
+            events.push({ type: 'meds', stamp: mStamp || stamp, dateStr: r.date, fDate, recId: r.id, subId: m.id, data: { n: m.name, t: m.time } });
+          });
+        }
+        if (r.sugars) {
+          r.sugars.forEach(s => {
+            const sStamp = s.time ? new Date(`${r.date}T${s.time}:00`).getTime() : stamp;
+            events.push({ type: 'sugar', stamp: sStamp || stamp, dateStr: r.date, fDate, recId: r.id, subId: s.id, data: { v: s.val, t: s.type, time: s.time } });
+          });
+        }
+      });
+
+      // Filtreleme
+      events = events.filter(e => {
+        if (catFilter !== 'all' && e.type !== catFilter) return false;
+        if (dateFrom && e.dateStr < dateFrom) return false;
+        if (dateTo && e.dateStr > dateTo) return false;
+        return true;
+      });
+
+      events.sort((a, b) => b.stamp - a.stamp);
+
+      if (!events.length) {
+        container.innerHTML = '<p class="empty-msg">Seçili filtrelere uygun kayıt bulunamadı.</p>';
+        stats.innerHTML = '';
+        return;
+      }
+
+      const rows = events.map(e => {
+        let icon = '', text = '', valClass = 'neutral';
+        if (e.type === 'body') {
+          icon = '⚖️';
+          text = `${e.data.w ? e.data.w + ' kg' : ''} ${e.data.h ? e.data.h + ' cm' : ''}`;
+        } else if (e.type === 'heart') {
+          icon = '❤️';
+          text = `${e.data.s ? e.data.s + '/' + e.data.d + ' mmHg' : ''} ${e.data.p ? '— Nabız: ' + e.data.p : ''}`;
+        } else if (e.type === 'steps') {
+          icon = '👟';
+          text = `${e.data.st ? e.data.st.toLocaleString('tr-TR') + ' adım' : ''} ${e.data.n ? '<br><i style="font-size:11px;color:gray">"' + e.data.n + '"</i>' : ''}`;
+          if (e.data.st) valClass = classifySteps(e.data.st).cls;
+        } else if (e.type === 'food') {
+          icon = '🍏';
+          text = `<b>${e.data.m}</b> — <span style="color:var(--teal)">${e.data.c} kcal</span> <small>(${e.data.t})</small>`;
+        } else if (e.type === 'water') {
+          icon = '💧';
+          text = `Günlük Su Tüketimi — <span style="color:var(--blue);font-weight:600;">${e.data.amt.toLocaleString('tr-TR')} ml</span>`;
+        } else if (e.type === 'meds') {
+          icon = '💊';
+          text = `<b>${e.data.n}</b> <small style="color:var(--text3);">(${e.data.t})</small>`;
+        } else if (e.type === 'sugar') {
+          icon = '🩸';
+          const tc = classifySugar(e.data.v, e.data.t);
+          valClass = tc.cls;
+          text = `Kan Şekeri — <span style="font-weight:600;">${e.data.v} mg/dL</span> <small style="color:var(--text3);">(${e.data.t}${e.data.time ? ' - ' + e.data.time : ''})</small>`;
+        }
+
+        return `
+          <tr>
+            <td style="white-space:nowrap">${e.fDate}</td>
+            <td style="font-size:18px;text-align:center">${icon}</td>
+            <td style="width:100%"><span class="${valClass}">${text}</span></td>
+            <td><button class="delete-btn" style="position:static" onclick="handleDelete(${e.subId || 0}, '${e.dateStr}', '${e.type}')" title="Seçili kaydı siler">🗑</button></td>
+          </tr>
+        `;
+      }).join('');
+
+      container.innerHTML = `<table class="history-table">
+        <thead><tr><th>Tarih</th><th></th><th>Kayıt Detayı</th><th></th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+    }
+
+    // ─── Recommendations ────────────────────────────────────────────
+    async function renderRecommendations() {
+      await refreshRecords();
+
+      // Ensure lab reports are loaded for recommendations
+      try {
+        const res = await apiFetch('api/reports.php?action=get_all');
+        const data = await res.json();
+        if (data.status === 'success') allLabReports = data.data || [];
+      } catch (e) { }
+
+      const container = document.getElementById('recommendations-list');
+      const tips = generateRecommendations(allRecords);
+      if (!tips.length) {
+        container.innerHTML = '<p class="empty-msg">Öneriler için önce veri veya tahlil girişi yapın.</p>';
+        return;
+      }
+      container.innerHTML = tips.map(t => `
+    <div class="tip-card">
+      <div class="tip-icon">${t.icon}</div>
+      <div>
+        <span class="tip-category">${t.cat}</span>
+        <div class="tip-title">${t.title}</div>
+        <div class="tip-text">${t.text}</div>
+      </div>
+    </div>`).join('');
+    }
+    // ═══════════════════════════════════════════════════════════════
+    // Lab Reports (Tahlillerim)
+    // ═══════════════════════════════════════════════════════════════
+    let allLabReports = [];
+    const LAB_FIELDS = ['glucose', 'cholesterol_total', 'ldl', 'hdl', 'triglyceride', 'hba1c', 'iron', 'ferritin', 'b12', 'vitamin_d', 'tsh', 'hemoglobin', 'creatinine', 'alt_sgpt', 'ast_sgot'];
+
+    // Reference ranges for color coding
+    const LAB_REFS = {
+      glucose: { min: 74, max: 100, unit: 'mg/dL' },
+      cholesterol_total: { min: 0, max: 200, unit: 'mg/dL' },
+      ldl: { min: 0, max: 130, unit: 'mg/dL' },
+      hdl: { min: 40, max: 60, unit: 'mg/dL' },
+      triglyceride: { min: 0, max: 150, unit: 'mg/dL' },
+      hba1c: { min: 4, max: 5.6, unit: '%' },
+      iron: { min: 70, max: 180, unit: 'µg/dL' },
+      ferritin: { min: 24, max: 336, unit: 'µg/L' },
+      b12: { min: 200, max: 900, unit: 'ng/L' },
+      vitamin_d: { min: 30, max: 100, unit: 'ng/mL' },
+      tsh: { min: 0.4, max: 4.0, unit: 'mIU/L' },
+      hemoglobin: { min: 12, max: 17, unit: 'g/dL' },
+      creatinine: { min: 0.6, max: 1.2, unit: 'mg/dL' },
+      alt_sgpt: { min: 0, max: 50, unit: 'U/L' },
+      ast_sgot: { min: 0, max: 50, unit: 'U/L' }
+    };
+    const LAB_LABELS = {
+      glucose: 'Açlık Şekeri', cholesterol_total: 'Kolesterol', ldl: 'LDL', hdl: 'HDL',
+      triglyceride: 'Trigliserit', hba1c: 'HbA1c', iron: 'Demir', ferritin: 'Ferritin',
+      b12: 'B12', vitamin_d: 'D Vit.', tsh: 'TSH', hemoglobin: 'Hgb',
+      creatinine: 'Kreatinin', alt_sgpt: 'ALT', ast_sgot: 'AST'
+    };
+
+    // Client-Side PDF Parsing with PDF.js
+    document.getElementById('lab-pdf-file')?.addEventListener('change', async function (e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const statusEl = document.getElementById('lab-parsing-status');
+      statusEl.style.display = 'block';
+      statusEl.innerHTML = '⏳ PDF okunuyor…';
+
+      try {
+        const arrayBuffer = await file.arrayBuffer();
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        let fullText = '';
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const content = await page.getTextContent();
+          fullText += content.items.map(item => item.str).join(' ') + '\n';
+        }
+        const parsed = parsePdfText(fullText);
+        let count = 0;
+        LAB_FIELDS.forEach(f => {
+          if (parsed[f] !== undefined) {
+            document.getElementById('lab-' + f).value = parsed[f];
+            count++;
+          }
+        });
+        if (parsed.report_date) {
+          document.getElementById('lab-report-date').value = parsed.report_date;
+        }
+        statusEl.innerHTML = `✅ PDF'den <b>${count}</b> değer otomatik çıkartıldı! Kontrol edip kaydedebilirsiniz.`;
+        statusEl.style.background = 'rgba(0,212,170,0.15)';
+      } catch (err) {
+        console.error('PDF parse error:', err);
+        statusEl.innerHTML = '⚠️ PDF okunamadı. Değerleri manuel girebilirsiniz.';
+        statusEl.style.background = 'rgba(255,77,77,0.15)';
+      }
+    });
+
+    function parsePdfText(text) {
+      const result = {};
+      const patterns = {
+        glucose: /Glukoz.*?(\d+\.?\d*)\s*mg/i,
+        cholesterol_total: /(?<![HL])\bKolesterol\s+(\d+\.?\d*)\s*mg/i,
+        ldl: /LDL\s+[Kk]olesterol.*?(\d+\.?\d*)\s*mg/i,
+        hdl: /HDL\s+[Kk]olesterol.*?(\d+\.?\d*)\s*mg/i,
+        triglyceride: /Trigliserid\s+(\d+\.?\d*)\s*mg/i,
+        hba1c: /[Hh]b\s*A1c\)?\s+(\d+\.?\d*)\s*%/,
+        iron: /Demir\s+\(serum\)\s+(\d+\.?\d*)/i,
+        ferritin: /Ferritin\s+(\d+\.?\d*)/i,
+        b12: /[Vv]itamin\s*B12\s+(\d+\.?\d*)/,
+        vitamin_d: /[Vv]itamin\s*D.*?(\d+\.?\d*)\s*(ng|µg)/i,
+        tsh: /TSH\s+(\d+\.?\d*)/,
+        hemoglobin: /HGB\s+(\d+\.?\d*)/,
+        creatinine: /Kreatinin\s+(\d+\.?\d*)/i,
+        alt_sgpt: /(?:ALT|Alanin\s+aminotransferaz).*?(\d+\.?\d*)\s*U\/L/i,
+        ast_sgot: /(?:AST|Aspartat\s+transaminaz).*?(\d+\.?\d*)\s*U\/L/i
+      };
+      for (const [key, pat] of Object.entries(patterns)) {
+        const m = text.match(pat);
+        if (m) result[key] = parseFloat(m[1]);
+      }
+      const dateM = text.match(/Tarih:\s*(\d{2})\.(\d{2})\.(\d{4})/);
+      if (dateM) result.report_date = `${dateM[3]}-${dateM[2]}-${dateM[1]}`;
+      return result;
+    }
+
+    async function saveLabReport() {
+      const date = document.getElementById('lab-report-date').value;
+      if (!date) { showToast('Lütfen tahlil tarihini girin!', 'error'); return; }
+
+      const formData = new FormData();
+      formData.append('report_date', date);
+
+      const fileInput = document.getElementById('lab-pdf-file');
+      if (fileInput.files[0]) {
+        formData.append('pdf_file', fileInput.files[0]);
+      }
+
+      LAB_FIELDS.forEach(f => {
+        const val = document.getElementById('lab-' + f).value;
+        if (val) formData.append(f, val);
+      });
+
+      const notes = document.getElementById('lab-notes').value;
+      if (notes) formData.append('notes', notes);
+
+      try {
+        const token = localStorage.getItem('myAuthToken');
+        const res = await fetch('api/reports.php?action=add', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + token },
+          body: formData
+        });
+        const data = await res.json();
+        if (data.status === 'success') {
+          showToast('✅ Tahlil kaydedildi!', 'success');
+          // Reset form
+          fileInput.value = '';
+          LAB_FIELDS.forEach(f => document.getElementById('lab-' + f).value = '');
+          document.getElementById('lab-notes').value = '';
+          document.getElementById('lab-parsing-status').style.display = 'none';
+          renderLabReports();
+        } else {
+          showToast(data.message || 'Hata oluştu!', 'error');
+        }
+      } catch (e) { showToast('Sunucu hatası!', 'error'); console.error(e); }
+    }
+
+    async function renderLabReports() {
+      try {
+        const res = await apiFetch('api/reports.php?action=get_all');
+        const data = await res.json();
+        if (data.status === 'success') allLabReports = data.data || [];
+      } catch (e) { console.error(e); }
+
+      const container = document.getElementById('lab-reports-list');
+      if (!allLabReports.length) {
+        container.innerHTML = '<p class="empty-msg">Henüz tahlil yüklenmemiş.</p>';
+        return;
+      }
+
+      container.innerHTML = allLabReports.map(r => {
+        const d = new Date(r.report_date).toLocaleDateString('tr-TR', { day: '2-digit', month: 'short', year: 'numeric' });
+        let badges = '';
+        LAB_FIELDS.forEach(f => {
+          const val = parseFloat(r[f]);
+          if (!val && val !== 0) return;
+          const ref = LAB_REFS[f];
+          let cls = 'good';
+          if (val < ref.min) cls = 'warn';
+          if (val > ref.max) cls = 'danger';
+          badges += `<span class="lab-badge ${cls}">${LAB_LABELS[f]}: ${val}</span> `;
+        });
+        const pdfBtn = r.file_path ? `<a href="${r.file_path}" target="_blank" style="color:var(--blue);font-size:12px;text-decoration:none;">📎 PDF</a>` : '';
+        return `<div class="section-card" style="margin-bottom:12px;padding:14px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+            <span style="font-weight:700;font-size:14px;">🗓️ ${d}</span>
+            <div style="display:flex;gap:10px;align-items:center;">
+              ${pdfBtn}
+              <button class="delete-btn" style="position:static" onclick="deleteLabReport(${r.id})" title="Sil">🗑</button>
+            </div>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;">${badges}</div>
+          ${r.notes ? `<p style="font-size:11px;color:var(--text3);margin-top:6px;font-style:italic;">${r.notes}</p>` : ''}
+        </div>`;
+      }).join('');
+
+      renderLabTrend();
+    }
+
+    async function deleteLabReport(id) {
+      if (!confirm('Bu tahlili silmek istediğinize emin misiniz?')) return;
+      try {
+        await apiFetch('api/reports.php?action=delete', {
+          method: 'POST', body: JSON.stringify({ id })
+        });
+        showToast('Tahlil silindi.', 'success');
+        renderLabReports();
+      } catch (e) { showToast('Hata!', 'error'); }
+    }
+
+    function renderLabTrend() {
+      const metric = document.getElementById('lab-trend-metric')?.value || 'glucose';
+      const canvas = document.getElementById('lab-trend-chart');
+      if (!canvas) return;
+      if (charts['labTrend']) charts['labTrend'].destroy();
+
+      const sorted = [...allLabReports].sort((a, b) => a.report_date.localeCompare(b.report_date));
+      const labels = [];
+      const values = [];
+      sorted.forEach(r => {
+        const val = parseFloat(r[metric]);
+        if (val) {
+          labels.push(new Date(r.report_date).toLocaleDateString('tr-TR', { day: '2-digit', month: 'short' }));
+          values.push(val);
+        }
+      });
+
+      if (!values.length) {
+        canvas.parentElement.innerHTML = '<p class="empty-msg" style="text-align:center;">Bu metrik için veri yok.</p><canvas id="lab-trend-chart"></canvas>';
+        return;
+      }
+
+      const ref = LAB_REFS[metric];
+      charts['labTrend'] = new Chart(canvas, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [
+            { label: LAB_LABELS[metric], data: values, borderColor: 'rgba(108,99,255,1)', backgroundColor: 'rgba(108,99,255,0.15)', fill: true, tension: 0.3, pointRadius: 5 },
+            { label: 'Üst Limit', data: Array(values.length).fill(ref.max), borderColor: 'rgba(255,77,77,0.5)', borderDash: [6, 3], pointRadius: 0, fill: false },
+            { label: 'Alt Limit', data: Array(values.length).fill(ref.min), borderColor: 'rgba(255,193,7,0.5)', borderDash: [6, 3], pointRadius: 0, fill: false }
+          ]
+        },
+        options: { ...baseOpts, plugins: { ...baseOpts.plugins, legend: { ...baseOpts.plugins.legend, display: true } } }
+      });
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // Init
+    // ═══════════════════════════════════════════════════════════════
+    async function init() {
+
+      // Close drawer func
+      const closeDrawer = () => {
+        document.getElementById('drawer-entry')?.classList.remove('open');
+        document.getElementById('sidebar-overlay')?.classList.remove('show');
+      };
+
+      // Nav
+      document.querySelectorAll('.nav-item').forEach(btn => {
+        btn.addEventListener('click', () => {
+          navigateTo(btn.dataset.view);
+        });
+      });
+
+      // Quick Add Buttons
+      ['btn-quick-add-top', 'btn-quick-add-bottom'].forEach(id => {
+        document.getElementById(id)?.addEventListener('click', () => {
+          document.getElementById('drawer-entry')?.classList.add('open');
+          document.getElementById('sidebar-overlay')?.classList.add('show');
+          if (typeof loadCustomFoods === 'function') loadCustomFoods();
+          if (typeof loadMeds === 'function') loadMeds();
+        });
+      });
+
+      // Close drawer on overlay or close button click
+      document.getElementById('sidebar-overlay')?.addEventListener('click', closeDrawer);
+      document.getElementById('drawer-close-btn')?.addEventListener('click', closeDrawer);
+
+      // Live BMI preview
+      function updatePreview() {
+        const w = parseFloat(document.getElementById('entry-weight').value);
+        const h = parseFloat(document.getElementById('entry-height').value);
+        const el = document.getElementById('bmi-preview');
+        if (w && h) {
+          const bmi = calcBMI(w, h);
+          const c = classifyBMI(bmi);
+          el.innerHTML = `Anlık VKİ: <strong class="${c.cls}">${bmi} — ${c.label}</strong>`;
+          el.style.display = 'block';
+        } else { el.style.display = 'none'; }
+      }
+      document.getElementById('entry-weight').addEventListener('input', updatePreview);
+      document.getElementById('entry-height').addEventListener('input', updatePreview);
+
+      // Default date
+      const todayStr = new Date().toISOString().split('T')[0];
+      document.getElementById('shared-date').value = todayStr;
+      document.getElementById('history-date-from').value = todayStr;
+      document.getElementById('history-date-to').value = todayStr;
+
+      // Init auth flow
+      checkAuth();
+
+      // Modal confirm button
+      document.getElementById('modal-confirm-btn').addEventListener('click', async () => {
+        if (_pendingDeleteId || _pendingDeleteDate) {
+          await deleteRecord(_pendingDeleteId, _pendingDeleteDate, _pendingDeleteType);
+          showToast('Kayıt silindi.', 'info');
+          closeDeleteModal();
+          renderHistory();
+        }
+      });
+
+      // Close modal on overlay click
+      document.getElementById('delete-modal').addEventListener('click', e => {
+        if (e.target === document.getElementById('delete-modal')) closeDeleteModal();
+      });
+
+      // Chart Filters
+      document.querySelectorAll('.chart-filter-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.chart-filter-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          renderAllCharts(allRecords);
+        });
+      });
+
+      // History Filters
+      ['history-category', 'history-date-from', 'history-date-to'].forEach(id => {
+        document.getElementById(id).addEventListener('change', renderHistory);
+      });
+
+      navigateTo('dashboard');
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      await init();
+    });
+  </script>
+</body>
+
+</html>
