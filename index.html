@@ -3471,7 +3471,18 @@
         if (!visualContainer.querySelector('model-viewer') || visualContainer.querySelector('model-viewer').src !== safeUrl) {
           visualContainer.innerHTML = `<model-viewer id="v-3d-model" src="${safeUrl}" camera-controls auto-rotate shadow-intensity="1.5" shadow-softness="1" environment-image="neutral" exposure="1" interaction-prompt="none" style="width:100%; height:100%;"></model-viewer>`;
           const mv = visualContainer.querySelector('model-viewer');
+
+          let loadTimeout = setTimeout(() => {
+            if (!mv.loaded) {
+              if (!window.v3dFailedUrls) window.v3dFailedUrls = {};
+              window.v3dFailedUrls[avatarUrl] = true;
+              updateVirtualTwin(records);
+            }
+          }, 2500);
+
+          mv.addEventListener('load', () => clearTimeout(loadTimeout));
           mv.addEventListener('error', () => {
+            clearTimeout(loadTimeout);
             if (!window.v3dFailedUrls) window.v3dFailedUrls = {};
             window.v3dFailedUrls[avatarUrl] = true;
             updateVirtualTwin(records);
