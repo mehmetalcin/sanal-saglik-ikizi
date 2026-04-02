@@ -62,7 +62,7 @@ elseif ($action === 'login') {
             $pdo->prepare("UPDATE users SET auth_token = ? WHERE id = ?")->execute(array($token, $user['id']));
         }
         
-        echo json_encode(array("status" => "success", "username" => $user['username'], "token" => $token, "gender" => $user['gender'], "age_group" => $user['age_group'], "avatar_id" => $user['avatar_id']));
+        echo json_encode(array("status" => "success", "username" => $user['username'], "token" => $token, "gender" => $user['gender'], "age_group" => $user['age_group'], "avatar_id" => $user['avatar_id'], "avatar_url" => $user['avatar_url']));
     } else {
         echo json_encode(array("status" => "error", "message" => "Geçersiz kullanıcı adı veya şifre."));
     }
@@ -80,10 +80,10 @@ elseif ($action === 'check') {
         }
     }
     if (preg_match('/Bearer\s(\S+)/', $authHeader, $matches)) {
-        $stmt = $pdo->prepare("SELECT username, gender, age_group, avatar_id FROM users WHERE auth_token = ?");
+        $stmt = $pdo->prepare("SELECT username, gender, age_group, avatar_id, avatar_url FROM users WHERE auth_token = ?");
         $stmt->execute(array($matches[1]));
         if ($user = $stmt->fetch()) {
-            echo json_encode(array("status" => "authenticated", "username" => $user['username'], "gender" => $user['gender'], "age_group" => $user['age_group'], "avatar_id" => $user['avatar_id']));
+            echo json_encode(array("status" => "authenticated", "username" => $user['username'], "gender" => $user['gender'], "age_group" => $user['age_group'], "avatar_id" => $user['avatar_id'], "avatar_url" => $user['avatar_url']));
             exit;
         }
     }
@@ -95,10 +95,11 @@ elseif ($action === 'update_profile') {
     $gender = $data['gender'] ?? 'erkek';
     $age_group = $data['age_group'] ?? 'yetiskin';
     $avatar_id = $data['avatar_id'] ?? 'm1';
+    $avatar_url = $data['avatar_url'] ?? null;
 
-    $stmt = $pdo->prepare("UPDATE users SET gender = ?, age_group = ?, avatar_id = ? WHERE id = ?");
-    if ($stmt->execute(array($gender, $age_group, $avatar_id, $user_id))) {
-        echo json_encode(array("status" => "success", "message" => "Profil güncellendi.", "gender" => $gender, "age_group" => $age_group, "avatar_id" => $avatar_id));
+    $stmt = $pdo->prepare("UPDATE users SET gender = ?, age_group = ?, avatar_id = ?, avatar_url = ? WHERE id = ?");
+    if ($stmt->execute(array($gender, $age_group, $avatar_id, $avatar_url, $user_id))) {
+        echo json_encode(array("status" => "success", "message" => "Profil güncellendi.", "gender" => $gender, "age_group" => $age_group, "avatar_id" => $avatar_id, "avatar_url" => $avatar_url));
     } else {
         echo json_encode(array("status" => "error", "message" => "Profil güncellenemedi."));
     }

@@ -56,6 +56,10 @@ try {
 } catch (\Exception $e) { }
 
 try {
+    $pdo->exec("ALTER TABLE users ADD avatar_url VARCHAR(512) DEFAULT NULL");
+} catch (\Exception $e) { }
+
+try {
     $pdo->exec("CREATE TABLE IF NOT EXISTS user_custom_foods (
         id INT AUTO_INCREMENT PRIMARY KEY,
         food_name VARCHAR(255) UNIQUE NOT NULL,

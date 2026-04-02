@@ -12,6 +12,7 @@
     rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
 
   <style>
     /* ─── Reset & Base ─────────────────────────────────────────────────── */
@@ -1572,6 +1573,62 @@
         grid-template-columns: 1fr;
       }
     }
+
+    /* ─── 3D Avatar (model-viewer) ───────────────────────────────────── */
+    model-viewer {
+      width: 100%;
+      height: 100%;
+      background-color: transparent;
+      --poster-color: transparent;
+      outline: none;
+    }
+
+    .rpm-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.8);
+      z-index: 9999;
+      justify-content: center;
+      padding: 40px;
+    }
+
+    .rpm-modal-content {
+      width: 100%;
+      max-width: 800px;
+      height: 100%;
+      background: var(--surface);
+      border-radius: 24px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .rpm-iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+
+    .rpm-close {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: rgba(0, 0, 0, 0.4);
+      color: white;
+      border: none;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+    }
   </style>
 </head>
 
@@ -2348,9 +2405,15 @@
       </div>
       <div class="modal-body" style="padding: 20px;">
         <div class="input-group">
-          <label>Karakterini Seç (20+ Model) 🎨</label>
+          <label>Karakterini Seç (3D veya Standart) ✨</label>
+          <button onclick="openRPM()" class="section-save-btn"
+            style="width: 100%; margin: 10px 0; background: linear-gradient(135deg, var(--purple), var(--blue)); font-weight: 700; border-radius: 12px; height: 50px;">
+            📸 Yeni 3D Karakter Tasarla (Selfie ile)
+          </button>
+          <div style="font-size:12px; color:var(--text3); text-align:center; margin-bottom:10px;">veya aşağıdaki
+            listeden seçin</div>
           <div
-            style="display:grid; grid-template-columns: repeat(4, 1fr); gap:10px; margin-top:10px; max-height:350px; overflow-y:auto; padding:8px; background:rgba(0,0,0,0.2); border-radius:12px;">
+            style="display:grid; grid-template-columns: repeat(4, 1fr); gap:10px; margin-top:10px; max-height:200px; overflow-y:auto; padding:8px; background:rgba(0,0,0,0.2); border-radius:12px;">
             <button onclick="setAvatar('m1')" class="avatar-select-btn" id="btn-m1">👨</button>
             <button onclick="setAvatar('f1')" class="avatar-select-btn" id="btn-f1">👩</button>
             <button onclick="setAvatar('pro1')" class="avatar-select-btn" id="btn-pro1">🧔</button>
@@ -2414,6 +2477,14 @@
       <div class="modal-footer" style="padding:20px; text-align:right;">
         <button class="section-save-btn" style="width:100%;" onclick="closeMedsModal()">Kapat</button>
       </div>
+    </div>
+  </div>
+
+  <!-- Ready Player Me 3D Creator Modal -->
+  <div class="rpm-modal" id="rpm-modal">
+    <div class="rpm-modal-content">
+      <button class="rpm-close" onclick="closeRPM()">×</button>
+      <iframe class="rpm-iframe" id="rpm-iframe" allow="camera *; microphone *; clipboard-write"></iframe>
     </div>
   </div>
 
@@ -2576,6 +2647,7 @@
           window.currentUserGender = data.gender || 'erkek';
           window.currentUserAgeGroup = data.age_group || 'yetiskin';
           window.currentUserAvatarId = data.avatar_id || 'm1';
+          window.currentUserAvatarUrl = data.avatar_url || null;
           document.getElementById('sidebar').style.display = 'flex';
           navigateTo('dashboard');
         } else {
@@ -2602,6 +2674,7 @@
           localStorage.setItem('myAuthToken', data.token);
           window.currentUserGender = data.gender || gen;
           window.currentUserAgeGroup = data.age_group || ag;
+          window.currentUserAvatarUrl = (data.status === 'success' && data.avatar_url) ? data.avatar_url : null;
           showToast(action === 'login' ? 'Giriş başarılı!' : 'Kayıt başarılı!', 'success');
           document.getElementById('user-display').innerText = "👤 " + (data.username || u);
           document.getElementById('sidebar').style.display = 'flex';
@@ -3268,6 +3341,9 @@
       if (hasData) {
         renderAllCharts(allRecords);
         updateVirtualTwin(allRecords);
+      } else {
+        // Hangi veri olursa olsun Avatar'ı göster (ilk açılışta boş kalsa bile)
+        updateVirtualTwin([]);
       }
     }
 
@@ -3285,115 +3361,73 @@
       w = w || 75; h = h || 175;
       const bmi = (w / ((h / 100) ** 2));
       const avatarId = window.currentUserAvatarId || 'm1';
+      const avatarUrl = window.currentUserAvatarUrl || null;
+      const visualContainer = document.querySelector('.v-twin-visual');
 
-      // Find TODAY's specific record for suggestion logic
+      // 1. 3D Render Check (Container content management)
+      if (avatarUrl && visualContainer) {
+        if (!visualContainer.querySelector('model-viewer') || visualContainer.querySelector('model-viewer').src !== avatarUrl) {
+          visualContainer.innerHTML = `<model-viewer src="${avatarUrl}" camera-controls auto-rotate shadow-intensity="1" environment-image="neutral" exposure="1" interaction-prompt="none" style="width:100%; height:100%;"></model-viewer>`;
+        }
+      } else if (visualContainer && visualContainer.querySelector('model-viewer')) {
+        visualContainer.innerHTML = `<div class="v-twin-aura" id="v-aura"></div><svg viewBox="0 0 100 120" id="v-character"></svg>`;
+      }
+
+      // 2. Proactive Health Logic (Shared Metrics)
       const dSafe = new Date();
       const todayStr = dSafe.getFullYear() + '-' + String(dSafe.getMonth() + 1).padStart(2, '0') + '-' + String(dSafe.getDate()).padStart(2, '0');
       const latest = (records && records.length > 0) ? (records.find(r => r.date === todayStr) || { steps: 0, water: 0, calories: 0 }) : { steps: 0, water: 0, calories: 0 };
-
-      const torso = document.getElementById('v-torso');
-      const character = document.getElementById('v-character');
-      const hair = document.getElementById('v-hair-style');
-      const glasses = document.getElementById('v-glasses');
-      const sunglasses = document.getElementById('v-sunglasses');
-      const facialHair = document.getElementById('v-facial-hair');
-      const eyesBasic = document.getElementById('v-eyes-basic');
-      const hairExtra = document.getElementById('v-hair-extra');
-      const skinBase = document.getElementById('v-skin-base');
-
-      const aura = document.querySelector('.v-twin-aura');
-      const mouth = document.getElementById('v-mouth');
-      const status = document.querySelector('.v-twin-status');
-      const vitality = document.getElementById('v-vitality-fill');
-
-      // Reset features
-      [glasses, sunglasses, facialHair, hairExtra].forEach(el => { if (el) el.style.display = 'none'; });
-      if (eyesBasic) eyesBasic.style.display = 'block';
-      hair.setAttribute('stroke-width', '8');
-      hair.setAttribute('fill', 'none');
-      hair.setAttribute('stroke', '#333');
-      skinBase.setAttribute('d', 'M 38 35 Q 38 18 50 18 Q 62 18 62 35 Q 62 45 50 45 Q 38 45 38 35');
-
-      switch (avatarId) {
-        case 'm1': hair.setAttribute('d', 'M 40 22 Q 50 12 60 22'); break;
-        case 'f1': hair.setAttribute('d', 'M 35 25 Q 50 10 65 25 L 68 45 Q 50 40 32 45 Z'); hair.setAttribute('fill', '#333'); break;
-        case 'pro1': if (glasses) glasses.style.display = 'block'; if (facialHair) facialHair.style.display = 'block'; hair.setAttribute('d', 'M 35 25 Q 50 12 65 25'); break;
-        case 'pro2': if (sunglasses) sunglasses.style.display = 'block'; hair.setAttribute('d', 'M 38 22 Q 50 8 62 22'); break;
-        case 'pro-f1': if (sunglasses) sunglasses.style.display = 'block'; if (hairExtra) hairExtra.style.display = 'block'; hair.setAttribute('d', 'M 38 22 Q 50 15 62 22'); break;
-        case 'blonde-m': hair.setAttribute('d', 'M 38 22 Q 50 10 62 22'); hair.setAttribute('stroke', '#e1c16e'); break;
-        case 'blonde-f': hair.setAttribute('d', 'M 30 25 Q 50 5 70 25 L 75 55 Q 50 45 25 55 Z'); hair.setAttribute('fill', '#e1c16e'); break;
-        case 'ginger-m': hair.setAttribute('d', 'M 40 20 Q 50 10 60 20'); hair.setAttribute('stroke', '#b55239'); break;
-        case 'ginger-f': hair.setAttribute('d', 'M 32 25 Q 50 5 68 25 L 72 60 Q 50 48 28 60 Z'); hair.setAttribute('fill', '#b55239'); break;
-        case 'grey-m': hair.setAttribute('d', 'M 40 25 Q 50 15 60 25'); hair.setAttribute('stroke', '#ccc'); break;
-        case 'grey-f': hair.setAttribute('d', 'M 35 25 Q 50 12 65 25 L 68 45 Q 50 40 32 45 Z'); hair.setAttribute('fill', '#ccc'); break;
-        case 'boy': skinBase.setAttribute('d', 'M 40 35 Q 40 20 50 20 Q 60 20 60 35 Q 60 45 50 45 Q 40 45 40 35'); hair.setAttribute('d', 'M 42 20 L 45 15 M 50 18 L 50 12 M 58 20 L 55 15'); hair.setAttribute('stroke-width', '3'); break;
-        case 'girl': skinBase.setAttribute('d', 'M 40 35 Q 40 20 50 20 Q 60 20 60 35 Q 60 45 50 45 Q 40 45 40 35'); hair.setAttribute('d', 'M 38 22 Q 50 10 62 22 M 38 25 L 34 35 M 62 25 L 66 35'); hair.setAttribute('stroke-width', '4'); break;
-        case 'hijab': hair.setAttribute('d', 'M 30 25 Q 50 5 70 25 L 75 55 Q 50 70 25 55 Z'); hair.setAttribute('fill', '#555'); break;
-        case 'hat-m': hair.setAttribute('d', 'M 32 28 H 68 L 65 20 H 35 Z'); hair.setAttribute('fill', 'var(--purple)'); hair.setAttribute('stroke', 'none'); break;
-        case 'hat-f': hair.setAttribute('d', 'M 28 30 Q 50 5 72 30 H 28'); hair.setAttribute('fill', 'var(--teal)'); break;
-        case 'curly-f': hair.setAttribute('d', 'M 30 30 Q 50 10 70 30 L 75 50 Q 50 40 25 50 Z'); hair.setAttribute('fill', '#222'); hair.setAttribute('stroke-width', '12'); break;
-        case 'beard2': if (facialHair) facialHair.style.display = 'block'; hair.setAttribute('d', 'M 40 22 Q 50 10 60 22'); break;
-        case 'glasses1': if (glasses) glasses.style.display = 'block'; hair.setAttribute('d', 'M 40 22 Q 50 12 60 22'); break;
-        case 'cool1': hair.setAttribute('d', 'M 35 25 L 50 15 L 65 25'); hair.setAttribute('stroke-width', '10'); break;
-      }
-
-      // Continuous BMI-based Body Scaling (Dramatic & Dynamic)
-      // Base tW is 16 for BMI 22. 
-      // Scale: 12 (Very thin) to 36 (Very wide)
-      let tW = 16 + (bmi - 22) * 1.2;
-      tW = Math.max(10, Math.min(40, tW));
-
-      const left = 50 - tW, right = 50 + tW;
-      torso.setAttribute('d', `M ${left} 45 Q 50 40 ${right} 45 L ${right - 5} 75 Q 50 78 ${left + 5} 75 Z`);
-      const heightScale = Math.max(0.8, Math.min(1.2, h / 175));
-      character.setAttribute('transform', `scale(${heightScale})`);
-
       const now = new Date();
       const currentVal = now.getHours() + (now.getMinutes() / 60);
       const activeStart = 7, activeEnd = 23, totalActiveTime = activeEnd - activeStart;
       const elapsed = Math.max(0, Math.min(totalActiveTime, currentVal - activeStart));
       const dayElapsedRatio = elapsed / totalActiveTime;
+      let timeCategory = (currentVal >= 23 || currentVal < 7) ? "Gece" : (currentVal >= 18 ? "Akşam" : (currentVal >= 12 ? "Öğle" : "Sabah"));
 
-      let timeCategory = "Sabah";
-      if (currentVal >= 23 || currentVal < 7) timeCategory = "Gece";
-      else if (currentVal >= 18) timeCategory = "Akşam";
-      else if (currentVal >= 12) timeCategory = "Öğle";
-      else timeCategory = "Sabah";
-
-      const stepGoal = customTargets.steps || 8000;
-      const waterGoal = customTargets.water || 2500;
-      const calGoal = customTargets.calories || 2000;
-
-      const sRatio = (latest.steps || 0) / stepGoal;
-      const wRatio = (latest.water || 0) / waterGoal;
-      const cRatio = (latest.calories || 0) / calGoal;
-
+      const stepGoal = customTargets.steps || 8000, waterGoal = customTargets.water || 2500, calGoal = customTargets.calories || 2000;
+      const sRatio = (latest.steps || 0) / stepGoal, wRatio = (latest.water || 0) / waterGoal, cRatio = (latest.calories || 0) / calGoal;
       window.vStats = { bmi, sRatio, wRatio, cRatio, dayElapsedRatio, timeCategory };
+      const isWaterOk = wRatio >= (dayElapsedRatio * 0.9), isStepOk = sRatio >= (dayElapsedRatio * 0.8), isCalOk = cRatio <= (dayElapsedRatio + 0.15);
 
-      const isWaterOk = wRatio >= (dayElapsedRatio * 0.9);
-      const isStepOk = sRatio >= (dayElapsedRatio * 0.8);
-      const isCalOk = cRatio <= (dayElapsedRatio + 0.15);
+      const status = document.querySelector('.v-twin-status');
+      const mouth = document.getElementById('v-mouth');
+      const aura = document.querySelector('.v-twin-aura') || visualContainer.querySelector('model-viewer');
 
-      if (isWaterOk && isStepOk && isCalOk && bmi >= 18.5 && bmi < 25) {
-        mouth.setAttribute('d', 'M 46 34 Q 50 38 54 34');
-        status.textContent = `Durum: ${timeCategory} - Harika ✨`;
-        aura.style.opacity = '0.3';
-      } else {
-        let reason = "Dikkat";
-        if (!isWaterOk) reason += " (Su lazım 💧)";
-        else if (!isStepOk) reason += " (Harekete geç 👟)";
-        else if (!isCalOk) reason += " (Kalori uyarısı ⚠️)";
-        else if (bmi >= 30) reason += " (Kilo uyarısı ⚖️)";
-
-        mouth.setAttribute('d', 'M 46 38 Q 50 34 54 38');
-        status.textContent = `Durum: ${timeCategory} - ${reason}`;
-        aura.style.opacity = '0.05';
-
-        // Proactive Alert
-        if (!document.getElementById('v-bubble').classList.contains('active')) {
-          talkToV();
+      if (status) {
+        if (isWaterOk && isStepOk && isCalOk && bmi >= 18.5 && bmi < 25) {
+          if (mouth) mouth.setAttribute('d', 'M 46 34 Q 50 38 54 34');
+          status.textContent = `Durum: ${timeCategory} - Harika ✨`;
+          if (aura) aura.style.opacity = avatarUrl ? '1' : '0.3';
+        } else {
+          let reason = "Dikkat: " + (!isWaterOk ? "Su 💧" : (!isStepOk ? "Adım 👟" : (!isCalOk ? "Kalori ⚠️" : "Kilo ⚖️")));
+          if (mouth) mouth.setAttribute('d', 'M 46 38 Q 50 34 54 38');
+          status.textContent = `Durum: ${timeCategory} - ${reason}`;
+          if (aura) aura.style.opacity = avatarUrl ? '1' : '0.05';
+          if (!document.getElementById('v-bubble').classList.contains('active')) talkToV();
         }
       }
+
+      // 3. SVG-Only Visual Handling (Return if 3D)
+      if (avatarUrl) return;
+
+      // ALWAYS Update Common Elements (Vitality, Suggestions)
+      const vitality = document.getElementById('v-vitality-fill');
+      const torso = document.getElementById('v-torso'), character = document.getElementById('v-character'), hair = document.getElementById('v-hair-style'), skinBase = document.getElementById('v-skin-base');
+      if (!torso || !character || !hair || !skinBase) {
+        visualContainer.innerHTML = `<div class="v-twin-aura" id="v-aura"></div><svg viewBox="0 0 100 120" id="v-character"><g id="v-character-group"><path id="v-torso" d="M 35 45 Q 50 40 65 45 L 60 75 Q 50 78 40 75 Z" fill="#333" /><g id="v-head"><path id="v-skin-base" d="M 38 35 Q 38 18 50 18 Q 62 18 62 35 Q 62 45 50 45 Q 38 45 38 35" fill="#fbc3a1" /><path id="v-mouth" d="M 46 40 Q 50 43 54 40" stroke="#333" stroke-width="1" fill="white" /><path id="v-hair-style" d="M 40 22 Q 50 12 60 22" stroke="#333" stroke-width="8" fill="none" /></g></g></svg>`;
+        return;
+      }
+      const glasses = document.getElementById('v-glasses'), sunglasses = document.getElementById('v-sunglasses'), facialHair = document.getElementById('v-facial-hair'), hairExtra = document.getElementById('v-hair-extra');
+      [glasses, sunglasses, facialHair, hairExtra].forEach(el => { if (el) el.style.display = 'none'; });
+
+      switch (avatarId) {
+        case 'pro1': if (glasses) glasses.style.display = 'block'; hair.setAttribute('d', 'M 35 25 Q 50 12 65 25'); break;
+        case 'f1': hair.setAttribute('d', 'M 35 25 Q 50 10 65 25 L 68 45 Q 50 40 32 45 Z'); hair.setAttribute('fill', '#333'); break;
+        default: hair.setAttribute('d', 'M 40 22 Q 50 12 60 22'); break;
+      }
+      let tW_final = Math.max(10, Math.min(40, 16 + (bmi - 22) * 1.2));
+      torso.setAttribute('d', `M ${50 - tW_final} 45 Q 50 40 ${50 + tW_final} 45 L ${50 + tW_final - 5} 75 Q 50 78 ${50 - tW_final + 5} 75 Z`);
+      character.setAttribute('transform', `scale(${Math.max(0.8, Math.min(1.2, h / 175))})`);
     }
 
     function talkToV() {
@@ -4091,6 +4125,41 @@
     document.addEventListener('DOMContentLoaded', async () => {
       await init();
     });
+    // ─── Ready Player Me 3D Avatar Logic ────────────────────────────
+    function openRPM() {
+      const subdomain = 'demo';
+      document.getElementById('rpm-iframe').src = `https://${subdomain}.readyplayer.me/avatar?frameApi`;
+      document.getElementById('rpm-modal').style.display = 'flex';
+    }
+    function closeRPM() {
+      document.getElementById('rpm-modal').style.display = 'none';
+      document.getElementById('rpm-iframe').src = '';
+    }
+    window.addEventListener('message', function (event) {
+      try {
+        const json = JSON.parse(event.data);
+        if (json?.source === 'readyplayerme' && json?.eventName === 'v1.avatar.exported') {
+          const url = json.data.url;
+          window.currentUserAvatarUrl = url;
+          save3DAvatar(url);
+          closeRPM();
+          if (typeof closeProfileModal === 'function') closeProfileModal();
+          updateVirtualTwin(allRecords);
+          showToast('3D Karakteriniz başarıyla oluşturuldu! ✨', 'success');
+        }
+      } catch (e) { }
+    });
+    async function save3DAvatar(url) {
+      await apiFetch('api/auth.php?action=update_profile', {
+        method: 'POST',
+        body: JSON.stringify({
+          gender: window.currentUserGender,
+          age_group: window.currentUserAgeGroup,
+          avatar_id: window.currentUserAvatarId,
+          avatar_url: url
+        })
+      });
+    }
   </script>
 </body>
 
